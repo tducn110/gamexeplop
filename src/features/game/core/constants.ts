@@ -1,0 +1,19 @@
+export const BLOCK_HEIGHT = 44;
+export const BLOCK_STEP = BLOCK_HEIGHT + 5;
+export const MIN_BLOCK_WIDTH = 22;
+export const PERFECT_TOLERANCE = 10;
+export const INITIAL_BLOCK_WIDTH = 252;
+export const INITIAL_SPEED = 2.7;
+export const SPEED_INCREASE = 0.068;
+export const MAX_SPEED = 12;
+export const DROP_ACCELERATION = 1.7;
+export const PIECE_GRAVITY = 0.52;
+export const GROUND_RATIO = 0.8;
+export const CAMERA_TOP = 0.4;
+export const MOVING_BLOCK_OFFSET = 118;
+export const PAUSE_MS = 220;
+export const SCORE_BASE = 10;
+export const SCORE_PERFECT = 55;
+export const SCORE_GOOD = 22;
+
+export const SPARK_COLORS = ["#f5c030", "#e8a010", "#c8d68a", "#f0b840", "#e87432", "#ffe08a"];

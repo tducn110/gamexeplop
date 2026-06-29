@@ -1,0 +1,108 @@
+.game-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  border-radius: 999px;
+  font-weight: 800;
+  font-family: inherit;
+  transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+}
+
+.game-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.game-btn-primary {
+  color: #fff8ee;
+  background: linear-gradient(180deg, #f08a48 0%, #e87432 100%);
+  border: 2px solid var(--orange-cta-edge);
+  box-shadow: 0 4px 0 var(--orange-cta-edge), 0 12px 22px rgba(232, 116, 50, 0.3);
+}
+
+.game-btn-secondary {
+  color: var(--ink-dark);
+  background: rgba(255, 255, 255, 0.84);
+  border: 2px solid rgba(138, 125, 101, 0.45);
+  box-shadow: 0 3px 0 rgba(138, 125, 101, 0.25);
+}
+
+.game-btn-ghost {
+  color: var(--body-text);
+  background: transparent;
+  border: 1px solid rgba(138, 125, 101, 0.35);
+}
+
+.game-btn-sm {
+  min-height: 38px;
+  padding: 0 14px;
+  font-size: 13px;
+}
+
+.game-btn-md {
+  min-height: 46px;
+  padding: 0 20px;
+  font-size: 15px;
+}
+
+.game-btn-lg {
+  min-height: 52px;
+  padding: 0 26px;
+  font-size: 17px;
+}
+
+.icon-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(253, 246, 234, 0.9);
+  border: 2px solid rgba(42, 36, 24, 0.12);
+  color: var(--ink-dark);
+  box-shadow: 0 4px 10px rgba(42, 36, 24, 0.08);
+  cursor: pointer;
+}
+
+.panel-frame {
+  padding: 22px;
+  border-radius: 24px;
+  background: var(--cream-card);
+  border: 2px solid rgba(42, 36, 24, 0.14);
+  box-shadow: 0 16px 36px rgba(42, 36, 24, 0.18), inset 0 2px 0 rgba(255, 255, 255, 0.7);
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(138, 125, 101, 0.08);
+}
+
+.stat-row span {
+  color: var(--pencil-gray);
+  font-size: 13px;
+}
+
+.stat-row strong {
+  color: var(--ink-dark);
+  font-size: 18px;
+}
+
+.alert-banner {
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(232, 116, 50, 0.12);
+  border: 1px solid rgba(232, 116, 50, 0.18);
+  color: var(--orange-cta-edge);
+}
+
+.muted-copy {
+  color: var(--pencil-gray);
+  font-size: 13px;
+}
