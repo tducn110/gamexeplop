@@ -80,7 +80,7 @@ export function useGameSession(playerName: string) {
     if (gameOverTimerRef.current) return;
     gameOverTimerRef.current = window.setTimeout(() => {
       gameOverTimerRef.current = null;
-      finishGame(payload);
+      setStatus("revive");
     }, CRASH_CLIMAX_MS);
   };
 
