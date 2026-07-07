@@ -35,7 +35,7 @@ function syncHeightScore(state: GameState) {
 
 function makeMovingBlock(state: GameState, viewportWidth: number) {
   const top = state.blocks[state.blocks.length - 1];
-  const motion = getMovingMotion(state.placed);
+  const motion = getMovingMotion(state.placed, viewportWidth);
   const startLeft = state.placed % 2 === 0;
 
   state.mv = {

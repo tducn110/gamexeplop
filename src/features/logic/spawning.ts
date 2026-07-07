@@ -6,7 +6,7 @@ import { getMovingMotion } from "./progression";
 export function createInitialState(viewportWidth: number): GameState {
   const config = getGameConfig(viewportWidth);
   const baseWidth = config.initialBlockWidth;
-  const motion = getMovingMotion(0);
+  const motion = getMovingMotion(0, viewportWidth);
   return {
     sub: "moving",
     blocks: [{ x: (viewportWidth - baseWidth) / 2, w: baseWidth }],
