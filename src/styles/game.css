@@ -1,20 +1,31 @@
 .app-shell {
-  position: relative;
-  min-height: 100dvh;
+  position: fixed;
+  inset: 0;
+  min-height: 100svh;
+  width: 100svw;
+  height: 100svh;
   overflow: hidden;
-  background:
-    radial-gradient(circle at top left, rgba(240, 184, 64, 0.34), transparent 32%),
-    linear-gradient(180deg, #f8d466 0%, #f5ecd7 34%, #efe3c4 100%);
+  background: #018bf7;
+}
+
+.sky-loop {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: url('/assets/sky_combined.png');
+  background-size: 100% auto;
+  background-position: center bottom;
+  background-repeat: repeat-y;
 }
 
 .backdrop-ink {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background:
-    linear-gradient(180deg, transparent 0%, rgba(76, 102, 48, 0.08) 100%),
-    radial-gradient(circle at 15% 80%, rgba(107, 142, 61, 0.18), transparent 24%),
-    radial-gradient(circle at 85% 12%, rgba(232, 116, 50, 0.16), transparent 22%);
+  background-image: url('/assets/Background.png');
+  background-size: 100% auto;
+  background-position: center bottom;
+  background-repeat: no-repeat;
 }
 
 .shell-inner {
@@ -22,31 +33,42 @@
   z-index: 1;
   display: grid;
   place-items: center;
-  min-height: 100dvh;
-  padding: 24px;
+  min-height: 100%;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  overflow: hidden;
 }
 
 .game-page {
-  width: min(100%, 1120px);
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  display: block;
+  overflow: hidden;
 }
 
 .game-frame {
   position: relative;
-  margin: 0 auto;
-  width: min(100%, 460px);
-  min-height: 720px;
-  border-radius: 28px;
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  aspect-ratio: auto;
+  border-radius: 0;
   overflow: hidden;
-  border: 2px solid rgba(42, 36, 24, 0.15);
-  background: rgba(253, 246, 234, 0.28);
-  box-shadow: var(--hud-shadow);
-  backdrop-filter: blur(8px);
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
 }
 
 .game-stage {
   position: relative;
   width: 100%;
-  min-height: 720px;
+  min-height: 100%;
+  height: 100%;
+  touch-action: none;
 }
 
 .stage-loading {
@@ -54,6 +76,7 @@
   place-items: center;
   width: 100%;
   min-height: 720px;
+  height: 100%;
   color: var(--ink-dark);
   font-size: 15px;
   font-weight: 700;
@@ -330,13 +353,41 @@
 }
 
 @media (max-width: 720px) {
-  .shell-inner {
-    padding: 12px;
+  .app-shell {
+    background: #0166f7;
   }
 
-  .game-frame,
+  .backdrop-ink {
+    background-image: url('/assets/backgroundphone.png');
+  }
+
+  .shell-inner {
+    padding: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .game-page {
+    width: 100%;
+    height: 100%;
+    min-height: 100%;
+  }
+
+  .game-frame {
+    width: 100%;
+    min-height: 100%;
+    height: 100%;
+    aspect-ratio: auto;
+    border-radius: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+  }
+
   .game-stage {
-    min-height: 100dvh;
+    min-height: 100%;
+    height: 100%;
   }
 
   .hud-bottombar {
@@ -346,5 +397,9 @@
 
   .result-grid {
     grid-template-columns: 1fr;
+  }
+
+  .stage-loading {
+    min-height: 100dvh;
   }
 }

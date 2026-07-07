@@ -22,9 +22,16 @@ export function FloatingTextLayer({ callout }: FloatingTextLayerProps) {
   if (!visible) return null;
 
   return (
-    <div className={`floating-callout floating-${visible.tone}`}>
-      <strong>{visible.message}</strong>
-      {visible.combo >= 2 ? <span>Combo x{visible.combo}</span> : null}
+    <div className="feedbackTextLayer">
+      <div className={`pointText ${visible.tone === 'perfect' ? 'criticalText' : visible.combo >= 2 ? 'comboFloatText' : ''}`} style={{ 
+        position: 'absolute', top: '50%', left: '50%', 
+        transform: 'translate(-50%, -50%)',
+        color: visible.tone === 'perfect' ? '#ff9800' : visible.tone === 'good' ? '#8bc34a' : '#ffffff',
+        textShadow: "0 2px 8px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.6)"
+      }}>
+        {visible.message}
+        {visible.combo >= 2 ? ` - Combo x${visible.combo}` : ""}
+      </div>
     </div>
   );
 }

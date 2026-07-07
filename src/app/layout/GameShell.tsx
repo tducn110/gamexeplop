@@ -1,9 +1,10 @@
 import type { PropsWithChildren } from "react";
+import { BackgroundScreen } from "@/screens/BackgroundScreen";
 
 export function GameShell({ children }: PropsWithChildren) {
   return (
     <div className="app-shell">
-      <div className="backdrop-ink" />
+      <BackgroundScreen />
       <div className="shell-inner">{children}</div>
     </div>
   );

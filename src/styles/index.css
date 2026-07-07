@@ -1,7 +1,9 @@
-@import './fonts.css';
-@import './tailwind.css';
-@import './design-tokens.css';
-@import './theme.css';
-@import './globals.css';
-@import './game.css';
-@import './ui.css';
+@import "./fonts.css";
+@import "./design-tokens.css";
+@import "./tailwind.css";
+@import "./theme.css";
+@import "./globals.css";
+@import "./game.css";
+@import "./ui.css";
+@import "./game-ui.css";
+@import "./loading-screen.css";

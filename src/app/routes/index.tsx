@@ -1,105 +1,91 @@
-import { lazy, Suspense } from "react";
-import { useGameSession } from "@/features/game/state/useGameSession";
-import { useGameStore } from "@/features/game/state/useGameStore";
-import { CountdownOverlay } from "@/components/game-ui/CountdownOverlay";
-import { DashboardPanel } from "@/components/game-ui/DashboardPanel";
-import { FloatingTextLayer } from "@/components/game-ui/FloatingTextLayer";
-import { GameHud } from "@/components/game-ui/GameHud";
-import { GameOverOverlay } from "@/components/game-ui/GameOverOverlay";
-import { LoginModal } from "@/components/game-ui/LoginModal";
-import { SettingsPanel } from "@/components/game-ui/SettingsPanel";
-import { GameButton } from "@/components/ui/primitives/GameButton";
+import { lazy, Suspense, useRef, useEffect } from "react";
+import { useGameSession } from "@/features/state/useGameSession";
+import { useGameStore } from "@/features/state/useGameStore";
+import { GameUI } from "@/components/game-ui/GameUI";
+import { useGameSound } from "@/hooks/useSound";
+import { audioManager } from "@/utils/audio-manager";
 
 const PixiGameStage = lazy(async () => {
-  const module = await import("@/features/game/render/pixi/PixiGameStage");
+  const module = await import("@/features/render/pixi/PixiGameStage");
   return { default: module.PixiGameStage };
 });
 
 export function RootRoute() {
   const store = useGameStore();
   const session = useGameSession(store.playerName);
+  const gameControllerRef = useRef<{ revive: () => void } | null>(null);
+
+  const { playBgm, stopBgm, playSlice, playBomb } = useGameSound(store.settings.sfxMuted);
+
+  useEffect(() => {
+    audioManager.setMusicMuted(store.settings.musicMuted);
+  }, [store.settings.musicMuted]);
+
+  useEffect(() => {
+    if (session.status === "running") {
+      playBgm();
+    } else if (session.status === "idle") {
+      audioManager.setBgmVolume(audioManager.landingBgmVolume);
+    } else if (session.status === "gameOver" || session.status === "revive") {
+      audioManager.setBgmVolume(0.05);
+    }
+  }, [session.status, playBgm]);
+
+  useEffect(() => {
+    if (session.callout) {
+      if (session.callout.tone === "perfect" || session.callout.tone === "good") {
+        playSlice(session.callout.combo);
+      }
+    }
+  }, [session.callout, playSlice]);
+
+  useEffect(() => {
+    if (session.status === "revive" || session.status === "gameOver") {
+      playBomb();
+    }
+  }, [session.status, playBomb]);
+
+  useEffect(() => {
+    if (store.settingsOpen || store.dashboardOpen) {
+      session.pauseGame();
+    }
+  }, [store.settingsOpen, store.dashboardOpen]);
+
+  useEffect(() => {
+    if (session.sessionKey === 0) {
+      session.startGame();
+    }
+  }, []);
+
+  const handleResumeGame = async () => {
+    try {
+      await audioManager.unlock();
+      if (!audioManager.bgmPlaying) {
+        audioManager.playBgm(audioManager.gameBgmVolume);
+      }
+    } catch (error) {
+      console.warn("Audio unlock failed", error);
+    }
+    session.resumeGame();
+  };
 
   return (
     <div className="game-page">
       <div className="game-frame">
-        <Suspense fallback={<div className="stage-loading">Dang tai san choi...</div>}>
+        <Suspense fallback={<div className="stage-loading">Đang tải sân chơi...</div>}>
           <PixiGameStage
             sessionKey={session.sessionKey}
             status={session.status}
             onScoreChange={session.commitHud}
-            onGameOver={session.finishGame}
+            onGameOver={session.handleGameOverEvent}
             onPlacement={session.pushPlacement}
+            onResumeGame={handleResumeGame}
+            gameControllerRef={gameControllerRef}
           />
         </Suspense>
 
-        <GameHud
-          score={session.hud.score}
-          best={session.hud.best}
-          floors={session.hud.floors}
-          combo={session.hud.combo}
-          playerName={store.playerName}
-          showHints={store.settings.showHints}
-          onDashboard={store.openDashboard}
-          onSettings={store.openSettings}
-          onLogin={store.openLogin}
-          onRestart={session.restartGame}
-        />
-
-        {session.status === "idle" ? (
-          <div className="start-overlay">
-            <div className="start-copy">
-              <p className="eyebrow">Chong Rom Len May</p>
-              <h1>Xep cao, canh chuan, giu nhịp thap rom.</h1>
-              <p>Tap vao san choi de tha bo rom dang di ngang. Cat cang it, thap cang ben.</p>
-            </div>
-            <div className="start-actions">
-              <GameButton size="lg" onClick={session.startGame}>
-                Bat dau choi
-              </GameButton>
-              <GameButton variant="secondary" size="md" onClick={store.openDashboard}>
-                Xem bang diem
-              </GameButton>
-            </div>
-          </div>
-        ) : null}
-
-        <CountdownOverlay countdown={session.countdown} />
-        <FloatingTextLayer callout={session.callout} />
-
-        {session.status === "gameOver" ? (
-          <GameOverOverlay
-            score={session.hud.score}
-            floors={session.hud.floors}
-            best={session.hud.best}
-            onReplay={session.restartGame}
-          />
-        ) : null}
+        <GameUI session={session} store={store} gameControllerRef={gameControllerRef} />
       </div>
-
-      <DashboardPanel
-        open={store.dashboardOpen}
-        best={session.hud.best}
-        lastScore={session.lastScore}
-        leaderboard={session.leaderboard}
-        onClose={store.closeDashboard}
-        onOpenLogin={store.openLogin}
-      />
-
-      <SettingsPanel
-        open={store.settingsOpen}
-        reducedMotion={store.settings.reducedMotion}
-        showHints={store.settings.showHints}
-        onClose={store.closeSettings}
-        onToggleReducedMotion={() => store.updateSettings({ reducedMotion: !store.settings.reducedMotion })}
-        onToggleHints={() => store.updateSettings({ showHints: !store.settings.showHints })}
-      />
-
-      <LoginModal
-        open={store.loginOpen}
-        currentName={store.playerName}
-        onClose={store.closeLogin}
-        onSave={store.savePlayerName}
-      />
     </div>
   );
 }

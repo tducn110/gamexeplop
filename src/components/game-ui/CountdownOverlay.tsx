@@ -3,10 +3,11 @@ interface CountdownOverlayProps {
 }
 
 export function CountdownOverlay({ countdown }: CountdownOverlayProps) {
-  if (countdown == null) return null;
+  if (countdown === null) return null;
+
   return (
-    <div className="countdown-overlay">
-      <div className="countdown-pill">{countdown}</div>
+    <div className="countdownOverlay">
+      <div className="countdownNumber">{countdown}</div>
     </div>
   );
 }

@@ -1,67 +1,81 @@
-@custom-variant dark (&:is(.dark *));
-
 :root {
   --font-size: 16px;
-  --background: var(--rice-paper);
-  --foreground: var(--body-text);
-  --card: var(--cream-card);
-  --card-foreground: var(--body-text);
-  --popover: var(--cream-card);
-  --popover-foreground: var(--ink-dark);
-  --primary: var(--orange-cta);
-  --primary-foreground: #fff8ee;
-  --secondary: var(--paper-warm);
-  --secondary-foreground: var(--ink-dark);
-  --muted: #e8dcc4;
-  --muted-foreground: var(--pencil-gray);
-  --accent: var(--mascot-yellow);
-  --accent-foreground: var(--ink-dark);
-  --destructive: var(--alert-red);
-  --destructive-foreground: #fff8ee;
-  --border: rgba(42, 36, 24, 0.14);
+  --font-family: 'Be Vietnam Pro', sans-serif;
+
+  /* Bộ Lạc Đậu Phộng — Vietnamese Countryside Palette */
+  --primary: #e87432;          /* orange CTA */
+  --primary-foreground: #ffffff;
+  --primary-container: #f0b840; /* mascot yellow */
+  --secondary: #6b8e3d;         /* bamboo green */
+  --secondary-foreground: #ffffff;
+  --secondary-container: #c8d68a;
+  --rice-paper: #f5ecd7;
+  --paper-warm: #efe3c4;
+  --ink-dark: #2a2418;
+  --mascot-yellow: #f0b840;
+  --orange-cta: #e87432;
+  --bamboo-green: #6b8e3d;
+  --leaf-deep: #4c6630;
+  --earth-brown: #8e4e22;
+  --pencil-gray: #8a7d65;
+  --outline: #8a7d65;
+
+  --background: #f5ecd7;
+  --foreground: #2a2418;
+  --card: #fdf6ea;
+  --card-foreground: #091d2e;
+  --popover: #fdf6ea;
+  --popover-foreground: #091d2e;
+  --muted: #e8dfc7;
+  --muted-foreground: #74796c;
+  --accent: #d5b747;
+  --accent-foreground: #091d2e;
+  --destructive: #ba1a1a;
+  --destructive-foreground: #ffffff;
+  --border: rgba(116, 121, 108, 0.3);
   --input: transparent;
-  --input-background: rgba(255, 255, 255, 0.65);
-  --switch-background: #c8b898;
-  --font-weight-medium: 600;
+  --input-background: #efe6d0;
+  --switch-background: #a8c686;
+  --font-weight-medium: 700;
   --font-weight-normal: 400;
-  --ring: var(--orange-cta);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: #030213;
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --ring: #4c6630;
+  --chart-1: #4c6630;
+  --chart-2: #8e4e22;
+  --chart-3: #d5b747;
+  --chart-4: #64b4c3;
+  --chart-5: #a8c686;
+  --radius: 0.75rem;
+  --sidebar: #f5ecd7;
+  --sidebar-foreground: #091d2e;
+  --sidebar-primary: #4c6630;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #a8c686;
+  --sidebar-accent-foreground: #091d2e;
+  --sidebar-border: rgba(116, 121, 108, 0.3);
+  --sidebar-ring: #4c6630;
 }
 
 .dark {
-  --background: #2b2419;
-  --foreground: #fdf6ea;
-  --card: #33291d;
-  --card-foreground: #fdf6ea;
-  --popover: #33291d;
-  --popover-foreground: #fdf6ea;
-  --primary: var(--mascot-yellow);
-  --primary-foreground: #2a2418;
-  --secondary: #443426;
-  --secondary-foreground: #fdf6ea;
-  --muted: #3a2f23;
-  --muted-foreground: #dccfb7;
-  --accent: var(--orange-cta);
-  --accent-foreground: #fff8ee;
-  --destructive: var(--alert-red);
-  --destructive-foreground: #fff8ee;
-  --border: rgba(255, 255, 255, 0.12);
-  --input: rgba(255, 255, 255, 0.08);
-  --ring: var(--mascot-yellow);
-  --font-weight-medium: 600;
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.145 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.145 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.985 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.396 0.141 25.723);
+  --destructive-foreground: oklch(0.637 0.237 25.331);
+  --border: oklch(0.269 0 0);
+  --input: oklch(0.269 0 0);
+  --ring: oklch(0.439 0 0);
+  --font-weight-medium: 500;
   --font-weight-normal: 400;
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
@@ -78,7 +92,7 @@
   --sidebar-ring: oklch(0.439 0 0);
 }
 
-@theme inline {
+:root {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -121,11 +135,14 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    box-sizing: border-box;
+    border-color: var(--border);
+    outline-color: var(--ring);
   }
 
   body {
-    @apply bg-background text-foreground;
+    background-color: var(--color-background);
+    color: var(--color-foreground);
   }
 
   /**
@@ -135,7 +152,7 @@
 
   html {
     font-size: var(--font-size);
-    font-family: "Be Vietnam Pro", sans-serif;
+    font-family: var(--font-family);
   }
 
   h1 {
@@ -171,7 +188,14 @@
   button {
     font-size: var(--text-base);
     font-weight: var(--font-weight-medium);
-    line-height: 1.2;
+    line-height: 1.5;
+    transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  button:hover:not(:disabled) {
+    transform: scale(1.02);
+  }
+  button:active:not(:disabled) {
+    transform: scale(0.95);
   }
 
   input {
@@ -180,3 +204,30 @@
     line-height: 1.5;
   }
 }
+
+/* ─── Game Button Primitives (design.md §3) ─────────────────────────────────── */
+.game-btn {
+  border-radius: 9999px;
+  font-family: 'Be Vietnam Pro', sans-serif;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+.game-btn:hover:not(:disabled) {
+  transform: scale(1.03);
+}
+.game-btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.game-btn-close {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: transparent; border: none; cursor: pointer;
+  color: #8a7d65;
+  display: grid; place-items: center;
+  transition: background 0.15s, transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.game-btn-close:hover { background: rgba(138, 125, 101, 0.1); transform: scale(1.1); }
+.game-btn-close:active { transform: scale(0.9); }
