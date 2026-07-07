@@ -46,6 +46,7 @@ export function SettingsScreen({
               variant="solid"
               onClick={onToggleMusic}
               className={`settingsToggle ${!musicMuted ? "is-on" : "is-off"}`}
+              style={{ fontWeight: "bold", color: !musicMuted ? "white" : "black" }}
             >
               {!musicMuted ? "Bật" : "Tắt"}
             </IconButton>
@@ -62,6 +63,7 @@ export function SettingsScreen({
               variant="solid"
               onClick={onToggleSfx}
               className={`settingsToggle ${!sfxMuted ? "is-on" : "is-off"}`}
+              style={{ fontWeight: "bold", color: !sfxMuted ? "white" : "black" }}
             >
               {!sfxMuted ? "Bật" : "Tắt"}
             </IconButton>

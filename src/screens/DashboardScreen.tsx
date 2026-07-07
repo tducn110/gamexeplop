@@ -9,11 +9,11 @@ interface DashboardScreenProps {
   best: number;
   lastScore: number;
   leaderboard: LeaderboardEntry[];
+  playerName: string;
   onClose: () => void;
-  onOpenLogin: () => void;
 }
 
-export function DashboardScreen({ open, best, lastScore, leaderboard, onClose, onOpenLogin }: DashboardScreenProps) {
+export function DashboardScreen({ open, best, lastScore, leaderboard, playerName, onClose }: DashboardScreenProps) {
   if (!open) return null;
 
   return (
@@ -21,44 +21,66 @@ export function DashboardScreen({ open, best, lastScore, leaderboard, onClose, o
       <div className="leaderboardCard">
         <div className="leaderboardTitle">
           <Trophy size={22} />
-          <span>Bảng Điểm</span>
+          <span>Kỷ lục</span>
         </div>
 
         <div className="leaderboardBestCard">
           <p className="leaderboardEyebrow">Kỷ lục của bạn</p>
           <h1>{best.toLocaleString("vi-VN")}</h1>
-          <span>Lần trước: {lastScore.toLocaleString("vi-VN")}</span>
         </div>
 
         <section className="leaderboardBoard">
           <div className="dashboardRankHeader">
-            <span>
-              <Trophy size={18} />
-              Top Điểm
+            <span className="rankTitle">
+              <Trophy size={16} />
+              Ranking 1-10
             </span>
-            <GameButton variant="secondary" size="sm" onClick={onOpenLogin}>
-              Đổi Tên
-            </GameButton>
+            <span className="rankColName">TOP ĐIỂM</span>
           </div>
 
           <div className="dashboardRankList leaderboardRankList">
             {leaderboard.length === 0 ? <p style={{ textAlign: "center", color: "var(--pencil-gray)", fontSize: 14 }}>{GAME_TEXT.LEADERBOARD_EMPTY}</p> : null}
             {leaderboard.map((entry) => {
-              const isTopThree = entry.rank && entry.rank <= 3;
+              const rank = entry.rank;
+              const isLocal = entry.playerName === playerName && entry.score === best;
+              
+              let badgeBg = "rgba(42,36,24,0.08)";
+              let badgeBorder = "rgba(42,36,24,0.25)";
+              let badgeColor = "var(--ink-dark)";
+              let rowBorder = "transparent";
+              
+              if (rank === 1) {
+                badgeBg = "#EDB338"; badgeBorder = "#C49021"; rowBorder = "#EDB338";
+              } else if (rank === 2) {
+                badgeBg = "#B4B598"; badgeBorder = "#8C8E76"; rowBorder = "#B4B598";
+              } else if (rank === 3) {
+                badgeBg = "#CE8654"; badgeBorder = "#A46538"; rowBorder = "#CE8654";
+              }
+
               return (
                 <div
                   key={`${entry.rank}-${entry.playerName}-${entry.score}`}
                   className="dashboardRankRow"
                   style={{
-                    background: isTopThree ? "linear-gradient(90deg, rgba(255,215,0,0.1) 0%, rgba(255,255,255,0.18) 100%)" : "rgba(138,125,101,0.08)",
-                    boxShadow: isTopThree ? "0 2px 0 rgba(255,255,255,0.52) inset" : "none",
+                    background: "rgba(138,125,101,0.1)",
+                    borderColor: rowBorder,
                   }}
                 >
-                  <div className="dashboardRankBadge" style={{ background: isTopThree ? "var(--orange-cta)" : "rgba(42,36,24,0.1)", color: isTopThree ? "#fff" : "var(--pencil-gray)" }}>
+                  <div 
+                    className="dashboardRankBadge" 
+                    style={{ 
+                      background: badgeBg, 
+                      color: badgeColor,
+                      borderColor: badgeBorder
+                    }}
+                  >
                     #{entry.rank}
                   </div>
                   <div className="dashboardRankName">
                     <span>{entry.playerName}</span>
+                  </div>
+                  <div className="dashboardRankTime">
+                    <Clock3 size={12} /> {entry.floors}s
                   </div>
                   <div className="dashboardRankScore">
                     {entry.score.toLocaleString("vi-VN")}
@@ -68,6 +90,45 @@ export function DashboardScreen({ open, best, lastScore, leaderboard, onClose, o
             })}
           </div>
         </section>
+
+        {(() => {
+          const playerInTopTen = leaderboard.find((entry) => entry.playerName === playerName && entry.score === best);
+          const playerRow = playerInTopTen || { rank: null, playerName, score: best };
+          
+          return (
+            <div className="leaderboardPlayerRow" style={{ marginTop: 12 }}>
+              <div
+                className="dashboardRankRow"
+                style={{
+                  background: "rgba(232,116,50,0.16)",
+                  borderColor: "rgba(232,116,50,0.45)",
+                }}
+              >
+                <div 
+                  className="dashboardRankBadge" 
+                  style={{ 
+                    background: "rgba(42,36,24,0.08)", 
+                    color: "var(--pencil-gray)",
+                    borderColor: "rgba(42,36,24,0.25)"
+                  }}
+                >
+                  {playerRow.rank ? `#${playerRow.rank}` : "Mới"}
+                </div>
+                <div className="dashboardRankName">
+                  <span>Bạn</span>
+                </div>
+                {playerRow.score > 0 && (
+                  <div className="dashboardRankTime">
+                    <Clock3 size={12} /> {playerRow.floors || 0}s
+                  </div>
+                )}
+                <div className="dashboardRankScore">
+                  {playerRow.score > 0 ? playerRow.score.toLocaleString("vi-VN") : "Chưa có"}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         <GameButton variant="secondary" size="lg" className="leaderboardBackBtn" onClick={onClose} style={{ marginTop: "auto", width: "100%" }}>
           <ArrowLeft size={16} />

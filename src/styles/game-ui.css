@@ -443,7 +443,7 @@
   }
 
   .dashboardRankRow {
-    grid-template-columns: 45px minmax(0, 1fr) minmax(50px, auto);
+    grid-template-columns: 45px minmax(0, 1fr) auto minmax(36px, auto);
     gap: 7px;
     padding: 8px 9px;
     border-radius: 13px;
@@ -468,7 +468,7 @@
 
 .dashboardRankRow {
   display: grid;
-  grid-template-columns: 52px minmax(0, 1fr) minmax(58px, auto);
+  grid-template-columns: 52px minmax(0, 1fr) auto minmax(40px, auto);
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
@@ -632,6 +632,50 @@
   font-weight: 900;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+}
+
+.leaderboardSubtitle {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-dark);
+  margin-top: 2px;
+}
+
+.dashboardRankHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 4px;
+}
+
+.rankTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 900;
+  color: var(--ink-dark);
+}
+
+.rankColName {
+  font-size: 11px;
+  font-weight: 900;
+  color: var(--pencil-gray);
+  letter-spacing: 0.05em;
+}
+
+.dashboardRankTime {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--orange-cta);
+  color: #fff;
+  padding: 3px 8px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 900;
+  white-space: nowrap;
 }
 
 .leaderboardBoard {

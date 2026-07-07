@@ -62,8 +62,8 @@ export function GameUI({ session, store, gameControllerRef }: GameUIProps) {
         best={session.hud.best}
         lastScore={session.lastScore}
         leaderboard={session.leaderboard}
+        playerName={store.playerName}
         onClose={store.closeDashboard}
-        onOpenLogin={() => {}}
       />
 
       <SettingsScreen

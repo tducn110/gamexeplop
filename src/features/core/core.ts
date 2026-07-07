@@ -115,7 +115,7 @@ export function startDrop(
     addFlash(state, "Chuẩn!", newX + newWidth / 2, landY - 12, "#e87432", 24);
     state.perfectHighlight = { x: newX, y: landY, w: newWidth, alpha: 1 };
   } else if (outcome.kind === "good") {
-    addFlash(state, "Tốt!", newX + newWidth / 2, landY - 12, "#6b8e3d", 20);
+    addFlash(state, "Rất gần!", newX + newWidth / 2, landY - 12, "#ff007f", 24);
   }
 
   if (state.combo >= 3) {
