@@ -21,7 +21,6 @@ const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
 
-
 function addFlash(state: GameState, txt: string, x: number, y: number, c: string, sz: number) {
   const flash: FloatingFlash = { id: state.flashId++, txt, x, y, alpha: 1, c, vy: -1.9, sz };
   state.flashes.push(flash);
@@ -90,9 +89,9 @@ export function startDrop(
       vrot: rand(-0.07, 0.07),
       alpha: 1,
     });
-    state.sub = "crashing";
+    state.sub = "gameOver";
     state.crashT = 0;
-    return { gameOver: false, placement: null };
+    return { gameOver: true, placement: null };
   }
 
   const isPerfect = overlapResult.totalCut <= PERFECT_TOLERANCE;
@@ -169,9 +168,9 @@ export function startDrop(
   }
 
   if (newWidth <= MIN_BLOCK_WIDTH) {
-    state.sub = "crashing";
+    state.sub = "gameOver";
     state.crashT = 0;
-    return { gameOver: false, placement: outcome };
+    return { gameOver: true, placement: outcome };
   }
 
   state.placed += 1;
@@ -241,9 +240,7 @@ export function updateGame(state: GameState, dt: number, viewportWidth: number, 
     piece.y += piece.vy;
     piece.rot += piece.vrot;
     piece.alpha -= 0.013;
-    if (piece.alpha <= 0 || piece.y + state.scroll > viewportHeight + 150) {
-      state.pieces.splice(index, 1);
-    }
+    if (piece.alpha <= 0) state.pieces.splice(index, 1);
   }
 
   for (let index = state.sparks.length - 1; index >= 0; index -= 1) {
@@ -284,15 +281,6 @@ export function updateGame(state: GameState, dt: number, viewportWidth: number, 
       makeMovingBlock(state, viewportWidth);
       state.sub = "moving";
     }
-  }
-
-  if (state.sub === "crashing" && state.pieces.length === 0) {
-    state.sub = "gameOver";
-    state.crashT = 0;
-  }
-
-  if (state.sub === "gameOver") {
-    return { gameOver: true, placement: null };
   }
 
   return { gameOver: false, placement: null };

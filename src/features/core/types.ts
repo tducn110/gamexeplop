@@ -1,5 +1,5 @@
 export type GameStatus = "idle" | "countdown" | "running" | "revive" | "x2score" | "gameOver" | "paused";
-export type GameSubstate = "moving" | "dropping" | "paused" | "crashing" | "gameOver";
+export type GameSubstate = "moving" | "dropping" | "paused" | "gameOver";
 
 export interface Block {
   x: number;
