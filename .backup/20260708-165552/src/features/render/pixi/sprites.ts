@@ -1,4 +1,4 @@
-import { Container, Graphics, Sprite, Texture, type Container as PixiContainer } from "pixi.js";
+import { Container, Graphics, Sprite, Text, Texture, type Container as PixiContainer } from "pixi.js";
 import { getMovingBlockY } from "../../core/core";
 import type { GameState } from "../../core/types";
 import { BLOCK_HEIGHT } from "../../core/constants";
@@ -17,6 +17,7 @@ export interface SpriteRegistry {
   pieces: Map<string, BlockView>;
   moving: BlockView | null;
   dropping: BlockView | null;
+  comboText: Text | null;
   perfectHighlight: Graphics | null;
 
 }
@@ -153,6 +154,7 @@ export function createSpriteRegistry(): SpriteRegistry {
     pieces: new Map(),
     moving: null,
     dropping: null,
+    comboText: null,
     perfectHighlight: null,
 
   };
@@ -220,6 +222,29 @@ export function syncWorldSprites(
     }
   }
 
+  if (state.combo > 1) {
+    if (!registry.comboText) {
+      registry.comboText = new Text({
+        text: `Combo x${state.combo}`,
+        style: {
+          fontFamily: "var(--font-family, system-ui)",
+          fontSize: 24,
+          fontWeight: "900",
+          fill: "#fff8d4",
+          stroke: { color: "#5f3b1f", width: 3 },
+        },
+      });
+      registry.comboText.anchor.set(0.5);
+      layer.addChild(registry.comboText);
+    }
+    registry.comboText.text = `Combo x${state.combo}`;
+    registry.comboText.x = appWidth / 2;
+    registry.comboText.y = 104;
+    registry.comboText.visible = true;
+  } else if (registry.comboText) {
+    registry.comboText.visible = false;
+  }
+
   if (state.perfectHighlight) {
     if (!registry.perfectHighlight) {
       registry.perfectHighlight = new Graphics();
@@ -250,6 +275,7 @@ export function destroySpriteRegistry(registry: SpriteRegistry) {
   for (const view of registry.pieces.values()) view.destroy({ children: true });
   registry.moving?.destroy({ children: true });
   registry.dropping?.destroy({ children: true });
+  registry.comboText?.destroy();
   registry.perfectHighlight?.destroy();
 
 }

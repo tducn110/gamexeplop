@@ -21,6 +21,9 @@ const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
 
+// DEBUG CỜ: Bật true để chặn khối block di chuyển qua lại (hỗ trợ test background)
+const DEBUG_FREEZE_MOVE = true; 
+
 function addFlash(state: GameState, txt: string, x: number, y: number, c: string, sz: number) {
   const flash: FloatingFlash = { id: state.flashId++, txt, x, y, alpha: 1, c, vy: -1.9, sz };
   state.flashes.push(flash);
@@ -39,7 +42,7 @@ function makeMovingBlock(state: GameState, viewportWidth: number) {
   const startLeft = state.placed % 2 === 0;
 
   state.mv = {
-    x: startLeft ? 0 : viewportWidth - top.w,
+    x: DEBUG_FREEZE_MOVE ? (viewportWidth - top.w) / 2 : (startLeft ? 0 : viewportWidth - top.w),
     w: top.w,
     dir: startLeft ? 1 : -1,
     spd: motion.speed,
@@ -89,9 +92,9 @@ export function startDrop(
       vrot: rand(-0.07, 0.07),
       alpha: 1,
     });
-    state.sub = "gameOver";
+    state.sub = "crashing";
     state.crashT = 0;
-    return { gameOver: true, placement: null };
+    return { gameOver: false, placement: null };
   }
 
   const isPerfect = overlapResult.totalCut <= PERFECT_TOLERANCE;
@@ -168,9 +171,9 @@ export function startDrop(
   }
 
   if (newWidth <= MIN_BLOCK_WIDTH) {
-    state.sub = "gameOver";
+    state.sub = "crashing";
     state.crashT = 0;
-    return { gameOver: true, placement: outcome };
+    return { gameOver: false, placement: outcome };
   }
 
   state.placed += 1;
@@ -240,7 +243,9 @@ export function updateGame(state: GameState, dt: number, viewportWidth: number, 
     piece.y += piece.vy;
     piece.rot += piece.vrot;
     piece.alpha -= 0.013;
-    if (piece.alpha <= 0) state.pieces.splice(index, 1);
+    if (piece.alpha <= 0 || piece.y + state.scroll > viewportHeight + 150) {
+      state.pieces.splice(index, 1);
+    }
   }
 
   for (let index = state.sparks.length - 1; index >= 0; index -= 1) {
@@ -260,16 +265,18 @@ export function updateGame(state: GameState, dt: number, viewportWidth: number, 
   }
 
   if (state.sub === "moving") {
-    const seconds = dt / 1000;
-    state.mv.spd = Math.min(state.mv.spd + state.mv.acc * seconds, state.mv.maxSpd);
-    state.mv.x += state.mv.dir * state.mv.spd * seconds;
-    if (state.mv.x <= 0) {
-      state.mv.x = 0;
-      state.mv.dir = 1;
-    }
-    if (state.mv.x + state.mv.w >= viewportWidth) {
-      state.mv.x = viewportWidth - state.mv.w;
-      state.mv.dir = -1;
+    if (!DEBUG_FREEZE_MOVE && !(window as any).DEBUG_FREEZE_MOVE) {
+      const seconds = dt / 1000;
+      state.mv.spd = Math.min(state.mv.spd + state.mv.acc * seconds, state.mv.maxSpd);
+      state.mv.x += state.mv.dir * state.mv.spd * seconds;
+      if (state.mv.x <= 0) {
+        state.mv.x = 0;
+        state.mv.dir = 1;
+      }
+      if (state.mv.x + state.mv.w >= viewportWidth) {
+        state.mv.x = viewportWidth - state.mv.w;
+        state.mv.dir = -1;
+      }
     }
   }
 
@@ -281,6 +288,15 @@ export function updateGame(state: GameState, dt: number, viewportWidth: number, 
       makeMovingBlock(state, viewportWidth);
       state.sub = "moving";
     }
+  }
+
+  if (state.sub === "crashing" && state.pieces.length === 0) {
+    state.sub = "gameOver";
+    state.crashT = 0;
+  }
+
+  if (state.sub === "gameOver") {
+    return { gameOver: true, placement: null };
   }
 
   return { gameOver: false, placement: null };

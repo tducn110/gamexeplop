@@ -9,9 +9,10 @@ export function BackgroundScreen() {
       }}
     >
       <div
-        className="absolute bottom-full left-0 w-full h-[10000vh]"
+        className="absolute left-0 w-full h-[10000vh]"
         style={{
-          backgroundImage: 'url(/assets/sky_combined.png)',
+          bottom: 'calc(100% - 2px)',
+          backgroundImage: "url('/assets/BackgroundSky.png')",
           backgroundSize: '100% auto',
           backgroundPosition: 'center bottom',
           backgroundRepeat: 'repeat-y',

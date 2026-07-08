@@ -1,6 +1,6 @@
 export const BLOCK_HEIGHT = 55;
 export const BLOCK_STEP = 55; // Exact stacking
-export const MIN_BLOCK_WIDTH = 22;
+export const MIN_BLOCK_WIDTH = 1;
 export const PERFECT_TOLERANCE = 2;
 export const INITIAL_BLOCK_WIDTH = 168; // Matches 84px texture width * 2
 export const INITIAL_SPEED = 58;
