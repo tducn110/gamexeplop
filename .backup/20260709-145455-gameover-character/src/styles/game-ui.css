@@ -213,7 +213,30 @@
   z-index: 18;
 }
 
+.settingsPanelScene {
+  position: relative;
+  isolation: isolate;
+}
+
+.settingsCharacter {
+  position: absolute;
+  left: clamp(-86px, -18vw, -58px);
+  top: 54px;
+  z-index: -1;
+  width: clamp(118px, 31vw, 164px);
+  max-height: 230px;
+  object-fit: contain;
+  object-position: center;
+  filter: drop-shadow(0 14px 12px rgba(42, 36, 24, 0.24));
+  transform: rotate(-9deg);
+  transform-origin: 70% 78%;
+  pointer-events: none;
+  user-select: none;
+}
+
 .settingsPanel {
+  position: relative;
+  z-index: 1;
   background: var(--card) !important;
   border: 2px solid rgba(42, 36, 24, 0.14) !important;
   border-radius: 24px !important;
@@ -291,6 +314,28 @@
   border-color: rgba(138, 125, 101, 0.38);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), var(--paper-warm));
   box-shadow: 0 4px 12px rgba(42, 36, 24, 0.1);
+}
+
+.settingsCharacterRow {
+  background: linear-gradient(180deg, rgba(255, 248, 218, 0.72), rgba(255, 226, 164, 0.34));
+  border: 1px solid rgba(185, 104, 24, 0.22);
+}
+
+.settingsRandomButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 78px;
+  min-height: 36px;
+  padding: 7px 13px;
+  border-radius: 999px;
+  border: 2px solid #d7851d;
+  background: linear-gradient(180deg, #ffbd42 0%, #f08a22 100%);
+  color: #fffaf0;
+  font-size: 13px;
+  font-weight: 900;
+  box-shadow: 0 6px 16px rgba(232, 116, 50, 0.24);
 }
 
 .settingsStatsCard {
@@ -821,27 +866,6 @@
   padding: 16px;
   box-sizing: border-box;
   overflow-y: auto;
-}
-
-.gameOverPresentation {
-  position: relative;
-  width: min(360px, 100%);
-  isolation: isolate;
-}
-
-.gameOverCharacter {
-  position: absolute;
-  left: 50%;
-  top: clamp(-124px, -19vh, -86px);
-  z-index: -1;
-  width: clamp(150px, 40vw, 210px);
-  max-height: 250px;
-  object-fit: contain;
-  filter: drop-shadow(0 14px 14px rgba(42, 36, 24, 0.22));
-  transform: translateX(-50%);
-  transform-origin: 50% 80%;
-  pointer-events: none;
-  user-select: none;
 }
 
 .gameOverCard {

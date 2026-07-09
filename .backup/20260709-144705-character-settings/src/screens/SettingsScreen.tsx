@@ -1,4 +1,4 @@
-import { Settings as SettingsIcon, VolumeX, Volume2, Music, Music2 } from "lucide-react";
+import { Settings as SettingsIcon, Eye, EyeOff, Lightbulb, LightbulbOff, VolumeX, Volume2, Music, Music2 } from "lucide-react";
 import { PanelFrame } from "@/components/shared/primitives/PanelFrame";
 import { IconButton } from "@/components/shared/primitives/IconButton";
 

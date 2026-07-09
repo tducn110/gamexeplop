@@ -1,4 +1,3 @@
-import { useEffect, useRef } from "react";
 import { useGameStore } from "@/features/state/useGameStore";
 import { useGameSession } from "@/features/state/useGameSession";
 import { CountdownOverlay } from "./CountdownOverlay";
@@ -17,14 +16,6 @@ interface GameUIProps {
 }
 
 export function GameUI({ session, store, gameControllerRef }: GameUIProps) {
-  const randomizedGameOverKeyRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    if (session.status !== "gameOver" || randomizedGameOverKeyRef.current === session.sessionKey) return;
-    randomizedGameOverKeyRef.current = session.sessionKey;
-    store.randomizeCharacter();
-  }, [session.sessionKey, session.status, store]);
-
   return (
     <>
       <GameHud
@@ -80,9 +71,11 @@ export function GameUI({ session, store, gameControllerRef }: GameUIProps) {
         open={store.settingsOpen}
         musicMuted={store.settings.musicMuted}
         sfxMuted={store.settings.sfxMuted}
+        character={store.settings.character}
         onClose={store.closeSettings}
         onToggleMusic={() => store.updateSettings({ musicMuted: !store.settings.musicMuted })}
         onToggleSfx={() => store.updateSettings({ sfxMuted: !store.settings.sfxMuted })}
+        onRandomCharacter={store.randomizeCharacter}
       />
     </>
   );

@@ -823,27 +823,6 @@
   overflow-y: auto;
 }
 
-.gameOverPresentation {
-  position: relative;
-  width: min(360px, 100%);
-  isolation: isolate;
-}
-
-.gameOverCharacter {
-  position: absolute;
-  left: 50%;
-  top: clamp(-124px, -19vh, -86px);
-  z-index: -1;
-  width: clamp(150px, 40vw, 210px);
-  max-height: 250px;
-  object-fit: contain;
-  filter: drop-shadow(0 14px 14px rgba(42, 36, 24, 0.22));
-  transform: translateX(-50%);
-  transform-origin: 50% 80%;
-  pointer-events: none;
-  user-select: none;
-}
-
 .gameOverCard {
   width: min(360px, 100%);
   display: flex;

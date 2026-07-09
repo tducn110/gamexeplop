@@ -1,13 +1,11 @@
 import { useState } from "react";
 import { loadPlayerName, savePlayerName } from "../backend/authBridge";
-import { DEFAULT_CHARACTER_ASSET, pickRandomCharacterAsset, type CharacterAsset } from "../characters/characterAssets";
 
 export interface GameUiSettings {
   reducedMotion: boolean;
   showHints: boolean;
   musicMuted: boolean;
   sfxMuted: boolean;
-  character: CharacterAsset;
 }
 
 export function useGameStore() {
@@ -19,7 +17,6 @@ export function useGameStore() {
     showHints: true,
     musicMuted: false,
     sfxMuted: false,
-    character: pickRandomCharacterAsset(DEFAULT_CHARACTER_ASSET.id),
   });
 
   const openDashboard = () => setDashboardOpen(true);
@@ -34,12 +31,6 @@ export function useGameStore() {
   const updateSettings = (patch: Partial<GameUiSettings>) => {
     setSettings((current) => ({ ...current, ...patch }));
   };
-  const randomizeCharacter = () => {
-    setSettings((current) => ({
-      ...current,
-      character: pickRandomCharacterAsset(current.character.id),
-    }));
-  };
 
   return {
     dashboardOpen,
@@ -52,6 +43,5 @@ export function useGameStore() {
     closeSettings,
     savePlayerName: persistPlayerName,
     updateSettings,
-    randomizeCharacter,
   };
 }
