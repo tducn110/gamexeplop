@@ -93,7 +93,7 @@ export function DashboardScreen({ open, best, lastScore, leaderboard, playerName
 
         {(() => {
           const playerInTopTen = leaderboard.find((entry) => entry.playerName === playerName && entry.score === best);
-          const playerRow = playerInTopTen || { rank: null, playerName, score: best };
+          const playerRow = playerInTopTen || { rank: null, playerName, score: best, floors: 0 };
           
           return (
             <div className="leaderboardPlayerRow" style={{ marginTop: 12 }}>

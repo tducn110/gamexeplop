@@ -16,9 +16,11 @@ export function getLeaderboard(): LeaderboardEntry[] {
   while (combined.length < 10) {
     const i = combined.length;
     combined.push({
+      id: `mock-${i}`,
       playerName: mockNames[i],
       score: Math.max(0, 1000 - i * 100),
       floors: Math.max(0, 50 - i * 5),
+      createdAt: new Date().toISOString(),
     });
   }
   
