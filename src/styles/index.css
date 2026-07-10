@@ -1,5 +1,6 @@
 @import "./fonts.css";
 @import "./design-tokens.css";
+@import "./tailwind.css";
 @import "./theme.css";
 @import "./globals.css";
 @import "./game.css";
