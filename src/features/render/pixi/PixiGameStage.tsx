@@ -12,7 +12,7 @@ import { applyCameraTransform } from "./camera";
 import { usePixiApp } from "./usePixiApp";
 import type { LeaderboardEntry } from "../../db/schema";
 import { getFloors } from "../../logic/rules";
-import { audioManager } from "../../utils/audio-manager";
+import { audioManager } from "../../../utils/audio-manager";
 
 const BACKGROUND_ASSET = "/assets/Background.png";
 
