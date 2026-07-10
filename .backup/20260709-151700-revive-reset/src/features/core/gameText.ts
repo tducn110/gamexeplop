@@ -29,8 +29,8 @@ export const GAME_TEXT = {
   REPLAY_BTN: "Chơi lại",
   
   REVIVE_TITLE: "Hồi Sinh?",
-  REVIVE_META: "Bạn đã xếp được {floors} tầng. Xem quảng cáo để tiếp tục.",
-  REVIVE_BTN: "Xem quảng cáo",
+  REVIVE_META: "Bạn đã xếp được {floors} tầng. Tiếp tục chứ?",
+  REVIVE_BTN: "Hồi sinh",
   SKIP_BTN: "Bỏ qua",
   
   X2_TITLE: "Nhân đôi điểm?",

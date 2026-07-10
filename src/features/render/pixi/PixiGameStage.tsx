@@ -12,6 +12,7 @@ import { applyCameraTransform } from "./camera";
 import { usePixiApp } from "./usePixiApp";
 import type { LeaderboardEntry } from "../../db/schema";
 import { getFloors } from "../../logic/rules";
+import { audioManager } from "../../utils/audio-manager";
 
 const BACKGROUND_ASSET = "/assets/Background.png";
 
@@ -153,6 +154,7 @@ export function PixiGameStage({ sessionKey, status, onScoreChange, onGameOver, o
         if (!gameRef.current) return;
         const res = startDrop(gameRef.current, sizeRef.current.height, sizeRef.current.width, intent.distance);
         if (res.gameOver) {
+          audioManager.playSfx("bomb", 0.65);
           onGameOver?.(getGameResult(gameRef.current));
         }
       }
@@ -185,6 +187,10 @@ export function PixiGameStage({ sessionKey, status, onScoreChange, onGameOver, o
             lastPlacementTokenRef.current = game.lastPlacement.token;
             const topSprite = registry.blocks.get(`block-${game.blocks.length - 1}`) ?? null;
             runPlacementAnimation(game.lastPlacement.kind, topSprite, layers.world, game.lastPlacement.combo);
+            
+            const pitch = 1.0 + Math.min(game.lastPlacement.combo, 8) * 0.08;
+            audioManager.playSfx("slice", 0.5, pitch);
+
             onPlacement({
               message: game.lastPlacement.kind === "perfect" ? "Đạt chuẩn!" : game.lastPlacement.kind === "good" ? "Rất gần!" : "Thêm 1 tầng",
               tone: game.lastPlacement.kind,

@@ -76,7 +76,7 @@ class AudioManager {
     const files: { name: keyof AudioBuffers; url: string }[] = [
       { name: "slice", url: `${basePath}666herohero-slash-21834.mp3` },
       { name: "bomb", url: `${basePath}bomb.mp3` },
-      { name: "bgm", url: `${basePath}moavii-we-are.mp3` },
+      { name: "bgm", url: `${basePath}BGMM_Lofi2.mp3` },
     ];
 
     let loaded = 0;
@@ -114,7 +114,7 @@ class AudioManager {
     if (this.buffers.bgm) return true;
 
     try {
-      const resp = await fetch(`${basePath}moavii-we-are.mp3`);
+      const resp = await fetch(`${basePath}BGMM_Lofi2.mp3`);
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const arrayBuf = await resp.arrayBuffer();
       const audioBuf = await this.ctx!.decodeAudioData(arrayBuf);

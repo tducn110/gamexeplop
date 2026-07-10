@@ -1,4 +1,5 @@
 import { calculateOverlap } from "../logic/collision";
+import { getGameConfig } from "../core/config";
 import { getMovingMotion } from "../logic/progression";
 import { calculateScore } from "../logic/scoring";
 import { createInitialState } from "../logic/spawning";
@@ -194,14 +195,18 @@ export function getGameResult(state: GameState): GameResult {
 
 export function reviveGame(state: GameState, viewportWidth: number) {
   const top = state.blocks[state.blocks.length - 1];
+
+  const initialWidth = getGameConfig(viewportWidth).initialBlockWidth;
+  const center = top.x + top.w / 2;
+  const newWidth = Math.min(initialWidth, viewportWidth);
+  const newX = clamp(center - newWidth / 2, 0, Math.max(0, viewportWidth - newWidth));
+
+  // Tặng thêm một khối bệ đỡ to để làm lại từ đầu
+  state.blocks.push({ x: newX, w: newWidth });
   
-  // slightly increase width to make it easier to recover
-  let w = top.w;
-  if (w < MIN_BLOCK_WIDTH * 2) {
-    w = Math.min(MIN_BLOCK_WIDTH * 2.5, viewportWidth);
-    top.w = w;
-  }
-  
+  // Đồng bộ lại điểm số và camera cho khối bệ đỡ mới
+  syncHeightScore(state);
+
   makeMovingBlock(state, viewportWidth);
   state.sub = "moving";
   state.pieces = [];

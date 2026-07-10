@@ -31,6 +31,7 @@ export function useGameSession(playerName: string) {
   const [lastScore, setLastScore] = useState(0);
   const [leaderboard, setLeaderboard] = useState(() => getLeaderboard());
   const [callout, setCallout] = useState<FloatingCallout | null>(null);
+  const [revivesUsed, setRevivesUsed] = useState(0);
   const countdownTimerRef = useRef<number | null>(null);
   const gameOverTimerRef = useRef<number | null>(null);
 
@@ -41,6 +42,7 @@ export function useGameSession(playerName: string) {
     setHud((current) => ({ ...current, score: 0, floors: 0, combo: 0 }));
     setStatus("paused");
     setSessionKey((current) => current + 1);
+    setRevivesUsed(0);
   };
 
   const restartGame = () => {
@@ -80,7 +82,11 @@ export function useGameSession(playerName: string) {
     if (gameOverTimerRef.current) return;
     gameOverTimerRef.current = window.setTimeout(() => {
       gameOverTimerRef.current = null;
-      setStatus("revive");
+      if (revivesUsed < 1) {
+        setStatus("revive");
+      } else {
+        setStatus("x2score");
+      }
     }, CRASH_CLIMAX_MS);
   };
 
@@ -91,6 +97,7 @@ export function useGameSession(playerName: string) {
   const confirmRevive = (reviveCallback: () => void) => {
     setStatus("countdown");
     setCountdown(3);
+    setRevivesUsed((current) => current + 1);
     reviveCallback();
     
     if (countdownTimerRef.current) window.clearInterval(countdownTimerRef.current);
