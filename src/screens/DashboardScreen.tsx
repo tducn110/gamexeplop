@@ -1,4 +1,4 @@
-import { ArrowLeft, Clock3, Trophy } from "lucide-react";
+import { ArrowLeft, Layers, Trophy } from "lucide-react";
 import type { LeaderboardEntry } from "@/features/db/schema";
 import { GAME_TEXT } from "@/features/core/gameText";
 import { PanelFrame } from "@/components/shared/primitives";
@@ -80,7 +80,7 @@ export function DashboardScreen({ open, best, lastScore, leaderboard, playerName
                     <span>{entry.playerName}</span>
                   </div>
                   <div className="dashboardRankTime">
-                    <Clock3 size={12} /> {entry.floors}s
+                    <Layers size={12} /> {entry.floors} tầng
                   </div>
                   <div className="dashboardRankScore">
                     {entry.score.toLocaleString("vi-VN")}
@@ -119,7 +119,7 @@ export function DashboardScreen({ open, best, lastScore, leaderboard, playerName
                 </div>
                 {playerRow.score > 0 && (
                   <div className="dashboardRankTime">
-                    <Clock3 size={12} /> {playerRow.floors || 0}s
+                    <Layers size={12} /> {playerRow.floors || 0} tầng
                   </div>
                 )}
                 <div className="dashboardRankScore">
