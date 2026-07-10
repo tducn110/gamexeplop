@@ -5,6 +5,10 @@ import { audioManager } from "../utils/audio-manager";
 
 export default function App() {
   useEffect(() => {
+    // Preload audio files
+    audioManager.preloadAll("/assets/");
+    audioManager.tryAutoPlayBgm("/assets/");
+
     const playButtonClick = (event: MouseEvent) => {
       const target = event.target;
       if (!(target instanceof Element)) return;
