@@ -1,6 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { audioManager } from "../../utils/audio-manager";
 import { RotateCcw, AlertTriangle } from "lucide-react";
+import { logger } from "../../utils/logger";
 
 interface Props {
   children: ReactNode;
@@ -22,7 +23,9 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error("Uncaught game exception caught by ErrorBoundary:", error, errorInfo);
+    logger.bug("React Rendering Exception", error, {
+      componentStack: errorInfo.componentStack || "",
+    });
   }
 
   private handleReload = () => {
