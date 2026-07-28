@@ -32,8 +32,4 @@ export const GAME_TEXT = {
   REVIVE_META: "Bạn đã xếp được {floors} tầng. Xem quảng cáo để tiếp tục.",
   REVIVE_BTN: "Xem quảng cáo",
   SKIP_BTN: "Bỏ qua",
-  
-  X2_TITLE: "Nhân đôi điểm?",
-  X2_META: "Xem quảng cáo ngắn để nhận {score} điểm?",
-  ADS_BTN: "Quảng Cáo",
 };

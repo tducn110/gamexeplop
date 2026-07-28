@@ -31,6 +31,19 @@
   box-shadow: 0 0px 0 #b64f10, 0 6px 12px rgba(232, 116, 50, 0.2);
 }
 
+.game-btn-warning {
+  color: #452100;
+  background: linear-gradient(180deg, #fcd34d 0%, #f59e0b 100%);
+  border: 2px solid #b45309;
+  box-shadow: 0 6px 0 #b45309, 0 12px 22px rgba(245, 158, 11, 0.3);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.game-btn-warning:active:not(:disabled) {
+  transform: translateY(6px);
+  box-shadow: 0 0px 0 #b45309, 0 6px 12px rgba(245, 158, 11, 0.2);
+}
+
 .game-btn-secondary {
   color: var(--ink-dark);
   background: linear-gradient(180deg, #ffffff 0%, #f0ebd9 100%);

@@ -13,6 +13,7 @@ import { usePixiApp } from "./usePixiApp";
 import type { LeaderboardEntry } from "../../db/schema";
 import { getFloors } from "../../logic/rules";
 import { audioManager } from "../../../utils/audio-manager";
+import { MobileDebugOverlay } from "@/platform/diagnostics/MobileDebugOverlay";
 
 const BACKGROUND_ASSET = "/assets/Background.png";
 
@@ -52,7 +53,7 @@ function drawBackgroundOverlay(g: Graphics, width: number, height: number, score
 }
 
 export function PixiGameStage({ sessionKey, status, onScoreChange, onGameOver, onPlacement, onResumeGame, gameControllerRef }: PixiGameStageProps) {
-  const { wrapRef, appRef, layersRef, sizeRef, ready } = usePixiApp();
+  const { wrapRef, appRef, layersRef, sizeRef, ready, viewport } = usePixiApp();
   const gameRef = useRef<GameState | null>(null);
   const texturesRef = useRef<GameTextures | null>(null);
   const registryRef = useRef(createSpriteRegistry());
@@ -245,5 +246,25 @@ export function PixiGameStage({ sessionKey, status, onScoreChange, onGameOver, o
     };
   }, [layersRef]);
 
-  return <div ref={wrapRef} className="game-stage" aria-label="Sân chơi kéo lên trời" />;
+  const stageReady = viewport.ready && ready;
+
+  return (
+    <>
+      <div
+        ref={wrapRef}
+        className="game-stage"
+        data-viewport-ready={viewport.ready ? "true" : "false"}
+        aria-label="Sân chơi kéo lên trời"
+      >
+        {!stageReady ? <div className="stage-loading">Đang tải sân chơi...</div> : null}
+      </div>
+      <MobileDebugOverlay
+        viewport={viewport.diagnostics}
+        renderer={appRef.current ? {
+          width: appRef.current.renderer.width,
+          height: appRef.current.renderer.height,
+        } : null}
+      />
+    </>
+  );
 }

@@ -15,7 +15,7 @@ export function RootRoute() {
   const session = useGameSession(store.playerName);
   const gameControllerRef = useRef<{ revive: () => void } | null>(null);
 
-  const { playBgm, stopBgm, playSlice, playBomb } = useGameSound(store.settings.sfxMuted);
+  const { playSlice, playBomb } = useGameSound(store.settings.sfxMuted);
 
   useEffect(() => {
     audioManager.setMusicMuted(store.settings.musicMuted);
@@ -23,13 +23,13 @@ export function RootRoute() {
 
   useEffect(() => {
     if (session.status === "running") {
-      playBgm();
+      audioManager.requestBgm(audioManager.gameBgmVolume);
     } else if (session.status === "idle") {
-      audioManager.setBgmVolume(audioManager.landingBgmVolume);
+      audioManager.requestBgm(audioManager.landingBgmVolume);
     } else if (session.status === "gameOver" || session.status === "revive") {
-      audioManager.setBgmVolume(0.05);
+      audioManager.requestBgm(0.05);
     }
-  }, [session.status, playBgm]);
+  }, [session.status]);
 
   useEffect(() => {
     if (session.callout) {
@@ -59,10 +59,8 @@ export function RootRoute() {
 
   const handleResumeGame = async () => {
     try {
-      await audioManager.unlock();
-      if (!audioManager.bgmPlaying) {
-        audioManager.playBgm(audioManager.gameBgmVolume);
-      }
+      await audioManager.unlockFromGesture();
+      audioManager.requestBgm(audioManager.gameBgmVolume);
     } catch (error) {
       console.warn("Audio unlock failed", error);
     }

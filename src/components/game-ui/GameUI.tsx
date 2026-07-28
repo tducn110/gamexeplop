@@ -5,7 +5,7 @@ import { CountdownOverlay } from "./CountdownOverlay";
 import { FloatingTextLayer } from "./FloatingTextLayer";
 import { GameOverScreen } from "@/screens/GameOverScreen";
 import { ReviveScreen } from "@/screens/ReviveScreen";
-import { X2ScoreScreen } from "@/screens/X2ScoreScreen";
+
 import { DashboardScreen } from "@/screens/DashboardScreen";
 import { SettingsScreen } from "@/screens/SettingsScreen";
 import { GameHud } from "./GameHud";
@@ -48,14 +48,6 @@ export function GameUI({ session, store, gameControllerRef }: GameUIProps) {
         onSkip={session.skipRevive}
       />
 
-      <X2ScoreScreen
-        score={session.hud.score}
-        running={session.status === "running"}
-        visible={session.status === "x2score"}
-        onWatchAd={session.applyX2Score}
-        onSkip={session.skipX2Score}
-      />
-
       <GameOverScreen
         score={session.hud.score}
         best={session.hud.best}
@@ -65,6 +57,7 @@ export function GameUI({ session, store, gameControllerRef }: GameUIProps) {
         countdown={session.countdown}
         character={store.settings.character}
         onRetry={session.restartGame}
+        onApplyX2Score={session.applyX2Score}
       />
 
       <DashboardScreen

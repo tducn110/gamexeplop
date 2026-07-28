@@ -85,13 +85,13 @@ export function useGameSession(playerName: string) {
       if (revivesUsed < 1) {
         setStatus("revive");
       } else {
-        setStatus("x2score");
+        finishGame({ score: hud.score, floors: hud.floors });
       }
     }, CRASH_CLIMAX_MS);
   };
 
   const skipRevive = () => {
-    setStatus("x2score");
+    finishGame({ score: hud.score, floors: hud.floors });
   };
 
   const confirmRevive = (reviveCallback: () => void) => {
@@ -120,9 +120,6 @@ export function useGameSession(playerName: string) {
     finishGame({ score: hud.score * 2, floors: hud.floors });
   };
 
-  const skipX2Score = () => {
-    finishGame({ score: hud.score, floors: hud.floors });
-  };
 
   const finishGame = (payload: { score: number; floors: number }) => {
     setStatus("gameOver");
@@ -170,7 +167,6 @@ export function useGameSession(playerName: string) {
     skipRevive,
     confirmRevive,
     applyX2Score,
-    skipX2Score,
     pushPlacement,
   };
 }

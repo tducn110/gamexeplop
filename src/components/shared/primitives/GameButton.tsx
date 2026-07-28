@@ -1,7 +1,7 @@
 import React from "react";
 
 export interface GameButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "secondary" | "ghost";
+  variant?: "primary" | "secondary" | "ghost" | "warning";
   size?: "sm" | "md" | "lg";
   children: React.ReactNode;
 }

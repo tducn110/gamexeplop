@@ -1,30 +1,28 @@
 import { useEffect, useRef, useState } from "react";
 import { Application } from "pixi.js";
 import { createStageLayers, type StageLayers } from "./containers";
-import { getViewSize } from "./resize";
+import { resizeRendererToViewport } from "./resize";
+import { useMeasuredViewport } from "@/platform/viewport/useMeasuredViewport";
 
 export function usePixiApp() {
   const wrapRef = useRef<HTMLDivElement>(null);
   const appRef = useRef<Application | null>(null);
   const layersRef = useRef<StageLayers | null>(null);
   const sizeRef = useRef({ width: 390, height: 720 });
+  const viewport = useMeasuredViewport(wrapRef);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
+    if (!viewport.ready) return;
+
     let cancelled = false;
+    let initialized = false;
     const wrap = wrapRef.current;
     if (!wrap) return;
 
     const app = new Application();
-    const startSize = getViewSize(wrap);
+    const startSize = viewport.size;
     sizeRef.current = startSize;
-
-    const resizeObserver = new ResizeObserver(() => {
-      if (!appRef.current || !wrapRef.current) return;
-      const nextSize = getViewSize(wrapRef.current);
-      sizeRef.current = nextSize;
-      appRef.current.renderer.resize(nextSize.width, nextSize.height);
-    });
 
     app.init({
       width: startSize.width,
@@ -37,6 +35,7 @@ export function usePixiApp() {
       gcMaxUnusedTime: 60000,
       gcFrequency: 30000,
     }).then(() => {
+      initialized = true;
       if (cancelled) {
         app.destroy({ removeView: true, releaseGlobalResources: true });
         return;
@@ -46,27 +45,30 @@ export function usePixiApp() {
       layersRef.current = layers;
       app.stage.addChild(layers.root);
       wrap.appendChild(app.canvas);
-      Object.assign(app.canvas.style, {
-        width: "100%",
-        height: "100%",
-        display: "block",
-        touchAction: "none",
-      });
+      resizeRendererToViewport(app, startSize);
       appRef.current = app;
-      resizeObserver.observe(wrap);
       setReady(true);
+    }).catch((error) => {
+      console.error("Failed to initialize Pixi application", error);
     });
 
     return () => {
       cancelled = true;
-      resizeObserver.disconnect();
-      app.stage.removeChildren();
-      app.destroy({ removeView: true, releaseGlobalResources: true }, { children: true });
+      if (initialized) {
+        app.stage.removeChildren();
+        app.destroy({ removeView: true, releaseGlobalResources: true }, { children: true });
+      }
       appRef.current = null;
       layersRef.current = null;
       setReady(false);
     };
-  }, []);
+  }, [viewport.ready]);
 
-  return { wrapRef, appRef, layersRef, sizeRef, ready };
+  useEffect(() => {
+    if (!ready || !appRef.current || !viewport.ready) return;
+    sizeRef.current = viewport.size;
+    resizeRendererToViewport(appRef.current, viewport.size);
+  }, [ready, viewport.ready, viewport.size.width, viewport.size.height]);
+
+  return { wrapRef, appRef, layersRef, sizeRef, ready, viewport };
 }

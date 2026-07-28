@@ -1,4 +1,5 @@
-import { RotateCcw, Trophy } from "lucide-react";
+import { useState, useEffect } from "react";
+import { RotateCcw, Trophy, Clapperboard } from "lucide-react";
 import { GameButton } from "@/components/shared/primitives/GameButton";
 import type { CharacterAsset } from "@/features/characters/characterAssets";
 
@@ -11,6 +12,7 @@ interface GameOverScreenProps {
   countdown: number | null;
   character: CharacterAsset;
   onRetry: () => void;
+  onApplyX2Score: () => void;
 }
 
 export function GameOverScreen({
@@ -22,7 +24,16 @@ export function GameOverScreen({
   countdown,
   character,
   onRetry,
+  onApplyX2Score,
 }: GameOverScreenProps) {
+  const [adWatched, setAdWatched] = useState(false);
+
+  useEffect(() => {
+    if (visible) {
+      setAdWatched(false);
+    }
+  }, [visible]);
+
   if (!visible || running || countdown !== null) return null;
 
   return (
@@ -52,10 +63,26 @@ export function GameOverScreen({
             </div>
           </div>
 
-          <GameButton variant="primary" size="lg" onClick={onRetry} style={{ width: "100%" }}>
-            <RotateCcw size={18} />
-            Chơi lại
-          </GameButton>
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px", width: "100%" }}>
+            {!adWatched && (
+              <GameButton
+                variant="warning"
+                size="lg"
+                onClick={() => {
+                  setAdWatched(true);
+                  onApplyX2Score();
+                }}
+                style={{ width: "100%" }}
+              >
+                <Clapperboard size={18} />
+                Quảng Cáo x2
+              </GameButton>
+            )}
+            <GameButton variant="primary" size="lg" onClick={onRetry} style={{ width: "100%" }}>
+              <RotateCcw size={18} />
+              Chơi lại
+            </GameButton>
+          </div>
         </div>
       </div>
     </div>
