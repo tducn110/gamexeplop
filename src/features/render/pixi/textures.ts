@@ -74,7 +74,7 @@ function createSparkTexture(app: Application) {
 export async function createGameTextures(app: Application): Promise<GameTextures> {
   const blockSheet = await Assets.load<Texture>({
     src: BLOCK_SHEET_ASSET,
-    data: { resolution: 4 } // Load SVG at 4x resolution for sharpness
+    data: { resolution: 2 } // Load SVG at 2x resolution for sharpness without breaking 4096px WebGL limits
   });
   const blocks = BLOCK_FRAMES.map((frame) => createFrameTexture(blockSheet, frame));
   const spark = createSparkTexture(app);
