@@ -13,6 +13,7 @@ interface GameOverScreenProps {
   character: CharacterAsset;
   onRetry: () => void;
   onApplyX2Score: () => void;
+  canSubmitScore?: boolean;
 }
 
 export function GameOverScreen({
@@ -25,6 +26,7 @@ export function GameOverScreen({
   character,
   onRetry,
   onApplyX2Score,
+  canSubmitScore = true,
 }: GameOverScreenProps) {
   const [adWatched, setAdWatched] = useState(false);
 
@@ -62,6 +64,12 @@ export function GameOverScreen({
               <strong>{best.toLocaleString("vi-VN")}</strong>
             </div>
           </div>
+          
+          {!canSubmitScore && (
+            <div style={{ color: '#ef4444', fontSize: '0.8rem', textAlign: 'center', marginBottom: '8px' }}>
+              CAPABILITY_DENIED: Điểm không được lưu vì chưa đăng nhập.
+            </div>
+          )}
 
           <div style={{ display: "flex", flexDirection: "column", gap: "10px", width: "100%" }}>
             {!adWatched && (

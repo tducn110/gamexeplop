@@ -1,14 +1,24 @@
-import { useEffect, useRef, useState } from "react";
-import { getLeaderboard } from "../backend/leaderboardApi";
-import { getBestScore, saveScore } from "../backend/scoreApi";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { getBestScore } from "../backend/scoreApi";
 import { CRASH_CLIMAX_MS } from "../core/constants";
 import type { GameStatus } from "../core/types";
+import { winkGame, type WinkRound } from "../../integrations/wink/client";
+import type { LeaderboardResponse, WinkBridgeState } from "../../integrations/wink/wink-bridge";
 
 export interface SessionHudState {
   score: number;
   floors: number;
   combo: number;
   best: number;
+}
+
+interface FinalizationState {
+  roundId: string;
+  finalScore: number;
+  playDurationMs: number;
+  scoreSubmitted: boolean;
+  completed: boolean;
+  promise: Promise<void> | null;
 }
 
 export interface FloatingCallout {
@@ -29,11 +39,15 @@ export function useGameSession(playerName: string) {
     best: getBestScore(),
   });
   const [lastScore, setLastScore] = useState(0);
-  const [leaderboard, setLeaderboard] = useState(() => getLeaderboard());
+  const [leaderboard, setLeaderboard] = useState<LeaderboardResponse | null>(null);
   const [callout, setCallout] = useState<FloatingCallout | null>(null);
   const [revivesUsed, setRevivesUsed] = useState(0);
+  const [winkState, setWinkState] = useState<WinkBridgeState | null>(null);
   const countdownTimerRef = useRef<number | null>(null);
   const gameOverTimerRef = useRef<number | null>(null);
+  
+  const currentRoundRef = useRef<WinkRound | null>(null);
+  const finalizationRef = useRef<FinalizationState | null>(null);
 
   const startGame = () => {
     if (countdownTimerRef.current) window.clearInterval(countdownTimerRef.current);
@@ -43,6 +57,8 @@ export function useGameSession(playerName: string) {
     setStatus("paused");
     setSessionKey((current) => current + 1);
     setRevivesUsed(0);
+    currentRoundRef.current = winkGame.startRound();
+    finalizationRef.current = null;
   };
 
   const restartGame = () => {
@@ -124,15 +140,58 @@ export function useGameSession(playerName: string) {
   const finishGame = (payload: { score: number; floors: number }) => {
     setStatus("gameOver");
     setLastScore(payload.score);
-    saveScore({
-      playerName,
-      score: payload.score,
-      floors: payload.floors,
-    });
     const best = Math.max(getBestScore(), payload.score);
     setHud((current) => ({ ...current, best, score: payload.score, floors: payload.floors }));
-    setLeaderboard(getLeaderboard());
+    
+    finalizeRound(payload.score);
   };
+  
+  const finalizeRound = useCallback(async (finalScore: number) => {
+    const round = currentRoundRef.current;
+    if (!round) return;
+    
+    if (!finalizationRef.current || finalizationRef.current.roundId !== round.roundId) {
+      finalizationRef.current = {
+        roundId: round.roundId,
+        finalScore,
+        playDurationMs: Date.now() - round.startedAtMs,
+        scoreSubmitted: !winkGame.canSubmitScore,
+        completed: false,
+        promise: null
+      };
+    }
+    
+    const state = finalizationRef.current;
+    if (state.completed && state.scoreSubmitted) return;
+    if (state.promise) return state.promise;
+    
+    state.promise = (async () => {
+      try {
+        if (!state.scoreSubmitted && winkGame.canSubmitScore) {
+          await winkGame.submitFinalScore({ score: state.finalScore });
+          state.scoreSubmitted = true;
+        }
+        if (!state.completed) {
+          const ok = winkGame.completeRound(round, { playDurationMs: state.playDurationMs });
+          state.completed = ok;
+        }
+        if (state.completed && state.scoreSubmitted) {
+           currentRoundRef.current = null;
+           refreshLeaderboard();
+        }
+      } catch (e) {
+        console.error("Finalization error", e);
+      } finally {
+        state.promise = null;
+      }
+    })();
+    
+    return state.promise;
+  }, []);
+
+  const refreshLeaderboard = useCallback(() => {
+    winkGame.refreshLeaderboard().then(setLeaderboard).catch(console.error);
+  }, []);
 
   const pushPlacement = (payload: { message: string; tone: "perfect" | "good" | "base"; combo: number }) => {
     setCallout({
@@ -144,9 +203,25 @@ export function useGameSession(playerName: string) {
   };
 
   useEffect(() => {
+    const stopObserve = winkGame.observe((state) => {
+      setWinkState(state);
+      if (state?.phase === "ready_anonymous" || state?.phase === "ready_authenticated") {
+        refreshLeaderboard();
+      }
+    });
+    
+    const stopLifecycle = winkGame.bindLifecycle({
+      onPause: pauseGame,
+      onResume: resumeGame,
+      // Add audio-manager calls if accessible globally, but for now we'll just handle state
+    });
+
     return () => {
       if (countdownTimerRef.current) window.clearInterval(countdownTimerRef.current);
       if (gameOverTimerRef.current) window.clearTimeout(gameOverTimerRef.current);
+      stopObserve();
+      stopLifecycle();
+      winkGame.dispose();
     };
   }, []);
 
@@ -168,5 +243,7 @@ export function useGameSession(playerName: string) {
     confirmRevive,
     applyX2Score,
     pushPlacement,
+    winkState,
+    canSubmitScore: winkGame.canSubmitScore,
   };
 }

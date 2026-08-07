@@ -7,3 +7,6 @@ dist-ssr
 .DS_Store
 .codegraph
 .vercel
+
+# Wink deployment evidence (local only)
+artifacts/

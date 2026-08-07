@@ -58,13 +58,19 @@ export function GameUI({ session, store, gameControllerRef }: GameUIProps) {
         character={store.settings.character}
         onRetry={session.restartGame}
         onApplyX2Score={session.applyX2Score}
+        canSubmitScore={session.canSubmitScore}
       />
 
       <DashboardScreen
         open={store.dashboardOpen}
         best={session.hud.best}
         lastScore={session.lastScore}
-        leaderboard={session.leaderboard}
+        leaderboard={(session.leaderboard?.entries || []).map(entry => ({
+          rank: entry.rank,
+          playerName: entry.displayName || "Anonymous",
+          score: entry.score,
+          floors: (entry.metadata?.floors as number) || 0,
+        } as any))}
         playerName={store.playerName}
         onClose={store.closeDashboard}
       />

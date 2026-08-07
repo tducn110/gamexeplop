@@ -7,7 +7,13 @@
     "build": "vite build",
     "dev": "vite",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
-    "test": "vitest run"
+    "test": "vitest run",
+    "prebuild": "npm run verify:wink-bridge",
+    "sync:wink-bridge": "node scripts/sync-wink-bridge.mjs",
+    "verify:wink-bridge": "node scripts/verify-wink-bridge.mjs",
+    "verify:wink-config": "node scripts/verify-game-config.mjs",
+    "verify:docker-headers": "node scripts/verify-docker-headers.mjs",
+    "generate:wink-config": "node scripts/generate-wink-runtime-config.mjs"
   },
   "dependencies": {
     "gsap": "^3.15.0",

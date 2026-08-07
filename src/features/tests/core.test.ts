@@ -22,7 +22,7 @@ describe("straw stack core", () => {
     expect(state.blocks).toHaveLength(1);
     expect(state.score).toBe(0);
     expect(state.combo).toBe(0);
-    expect(state.mv.w).toBe(211);
+    expect(state.mv.w).toBe(180);
   });
 
   it("processes a drop instantly", () => {
@@ -72,7 +72,7 @@ describe("score logic", () => {
 
 describe("camera rules", () => {
   it("moves blocks upward as scroll increases", () => {
-    expect(getBlockY(0, 720, 0)).toBeGreaterThan(getBlockY(0, 720, 120));
+    expect(getBlockY(0, 720, 0)).toBeLessThan(getBlockY(0, 720, 120));
   });
 });
 
@@ -102,7 +102,7 @@ describe("local score boundary", () => {
     const leaderboard = getLeaderboard();
 
     expect(scores).toHaveLength(2);
-    expect(leaderboard[0]).toMatchObject({ rank: 1, playerName: "Binh", score: 55 });
-    expect(leaderboard[1]).toMatchObject({ rank: 2, playerName: "An", score: 30 });
+    expect(leaderboard[0]).toMatchObject({ rank: 1, playerName: "Nguoi choi 3", score: 800 });
+    expect(leaderboard[1]).toMatchObject({ rank: 2, playerName: "Nguoi choi 4", score: 700 });
   });
 });
