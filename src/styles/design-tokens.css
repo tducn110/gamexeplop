@@ -1,0 +1,17 @@
+:root {
+  --rice-paper: #f5ecd7;
+  --paper-warm: #efe3c4;
+  --ink-dark: #2a2418;
+  --body-text: #4a4232;
+  --mascot-yellow: #f0b840;
+  --orange-cta: #e87432;
+  --orange-cta-edge: #b85a22;
+  --bamboo-green: #6b8e3d;
+  --leaf-deep: #4c6630;
+  --bamboo-soft: #c8d68a;
+  --earth-brown: #8e4e22;
+  --pencil-gray: #8a7d65;
+  --cream-card: #fdf6ea;
+  --alert-red: #c23838;
+  --hud-shadow: 0 24px 54px rgba(42, 36, 24, 0.16);
+}
