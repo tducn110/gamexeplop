@@ -1,0 +1,362 @@
+{
+  "source": "a_clean_high_resolution_sticker_sheet_style_illu.png",
+  "cut_method": "connected-component extraction from full sheet, transparent background cleanup",
+  "output_canvas": {
+    "width": 512,
+    "height": 512
+  },
+  "pivot": {
+    "x": 0.5,
+    "y": 0.5,
+    "pixel_x": 256.0,
+    "pixel_y": 256.0
+  },
+  "pixijs_hint": "Texture PNGs are 512x512; use sprite.anchor.set(0.5) or pivot=(256,256).",
+  "sprites": [
+    {
+      "name": "01_idle_smile",
+      "file": "01_idle_smile.png",
+      "source_bbox": {
+        "x": 36,
+        "y": 72,
+        "width": 257,
+        "height": 283
+      },
+      "canvas_placement": {
+        "x": 127,
+        "y": 114,
+        "width": 257,
+        "height": 283
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5,
+        "pixel_x": 256.0,
+        "pixel_y": 256.0
+      },
+      "included_components": 1
+    },
+    {
+      "name": "02_wave",
+      "file": "02_wave.png",
+      "source_bbox": {
+        "x": 315,
+        "y": 75,
+        "width": 267,
+        "height": 280
+      },
+      "canvas_placement": {
+        "x": 122,
+        "y": 116,
+        "width": 267,
+        "height": 280
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5,
+        "pixel_x": 256.0,
+        "pixel_y": 256.0
+      },
+      "included_components": 1
+    },
+    {
+      "name": "03_excited_laugh",
+      "file": "03_excited_laugh.png",
+      "source_bbox": {
+        "x": 642,
+        "y": 68,
+        "width": 211,
+        "height": 281
+      },
+      "canvas_placement": {
+        "x": 150,
+        "y": 115,
+        "width": 211,
+        "height": 281
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5,
+        "pixel_x": 256.0,
+        "pixel_y": 256.0
+      },
+      "included_components": 1
+    },
+    {
+      "name": "04_wink",
+      "file": "04_wink.png",
+      "source_bbox": {
+        "x": 910,
+        "y": 62,
+        "width": 233,
+        "height": 293
+      },
+      "canvas_placement": {
+        "x": 139,
+        "y": 109,
+        "width": 233,
+        "height": 293
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5,
+        "pixel_x": 256.0,
+        "pixel_y": 256.0
+      },
+      "included_components": 1
+    },
+    {
+      "name": "05_calm_pray",
+      "file": "05_calm_pray.png",
+      "source_bbox": {
+        "x": 1210,
+        "y": 84,
+        "width": 199,
+        "height": 265
+      },
+      "canvas_placement": {
+        "x": 156,
+        "y": 123,
+        "width": 199,
+        "height": 265
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5,
+        "pixel_x": 256.0,
+        "pixel_y": 256.0
+      },
+      "included_components": 1
+    },
+    {
+      "name": "06_surprised",
+      "file": "06_surprised.png",
+      "source_bbox": {
+        "x": 59,
+        "y": 432,
+        "width": 206,
+        "height": 266
+      },
+      "canvas_placement": {
+        "x": 153,
+        "y": 123,
+        "width": 206,
+        "height": 266
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5,
+        "pixel_x": 256.0,
+        "pixel_y": 256.0
+      },
+      "included_components": 1
+    },
+    {
+      "name": "07_cheer",
+      "file": "07_cheer.png",
+      "source_bbox": {
+        "x": 315,
+        "y": 420,
+        "width": 284,
+        "height": 271
+      },
+      "canvas_placement": {
+        "x": 114,
+        "y": 120,
+        "width": 284,
+        "height": 271
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5,
+        "pixel_x": 256.0,
+        "pixel_y": 256.0
+      },
+      "included_components": 1
+    },
+    {
+      "name": "08_sad",
+      "file": "08_sad.png",
+      "source_bbox": {
+        "x": 653,
+        "y": 432,
+        "width": 175,
+        "height": 267
+      },
+      "canvas_placement": {
+        "x": 168,
+        "y": 122,
+        "width": 175,
+        "height": 267
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5,
+        "pixel_x": 256.0,
+        "pixel_y": 256.0
+      },
+      "included_components": 1
+    },
+    {
+      "name": "09_angry",
+      "file": "09_angry.png",
+      "source_bbox": {
+        "x": 892,
+        "y": 405,
+        "width": 245,
+        "height": 294
+      },
+      "canvas_placement": {
+        "x": 133,
+        "y": 109,
+        "width": 245,
+        "height": 294
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5,
+        "pixel_x": 256.0,
+        "pixel_y": 256.0
+      },
+      "included_components": 5
+    },
+    {
+      "name": "10_cool_sunglasses",
+      "file": "10_cool_sunglasses.png",
+      "source_bbox": {
+        "x": 1208,
+        "y": 425,
+        "width": 171,
+        "height": 275
+      },
+      "canvas_placement": {
+        "x": 170,
+        "y": 118,
+        "width": 171,
+        "height": 275
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5,
+        "pixel_x": 256.0,
+        "pixel_y": 256.0
+      },
+      "included_components": 1
+    },
+    {
+      "name": "11_love_heart",
+      "file": "11_love_heart.png",
+      "source_bbox": {
+        "x": 55,
+        "y": 753,
+        "width": 208,
+        "height": 256
+      },
+      "canvas_placement": {
+        "x": 152,
+        "y": 128,
+        "width": 208,
+        "height": 256
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5,
+        "pixel_x": 256.0,
+        "pixel_y": 256.0
+      },
+      "included_components": 1
+    },
+    {
+      "name": "12_run",
+      "file": "12_run.png",
+      "source_bbox": {
+        "x": 307,
+        "y": 757,
+        "width": 265,
+        "height": 246
+      },
+      "canvas_placement": {
+        "x": 123,
+        "y": 133,
+        "width": 265,
+        "height": 246
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5,
+        "pixel_x": 256.0,
+        "pixel_y": 256.0
+      },
+      "included_components": 3
+    },
+    {
+      "name": "13_sleepy",
+      "file": "13_sleepy.png",
+      "source_bbox": {
+        "x": 652,
+        "y": 732,
+        "width": 217,
+        "height": 277
+      },
+      "canvas_placement": {
+        "x": 147,
+        "y": 117,
+        "width": 217,
+        "height": 277
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5,
+        "pixel_x": 256.0,
+        "pixel_y": 256.0
+      },
+      "included_components": 4
+    },
+    {
+      "name": "14_search_magnifier",
+      "file": "14_search_magnifier.png",
+      "source_bbox": {
+        "x": 912,
+        "y": 753,
+        "width": 213,
+        "height": 257
+      },
+      "canvas_placement": {
+        "x": 149,
+        "y": 127,
+        "width": 213,
+        "height": 257
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5,
+        "pixel_x": 256.0,
+        "pixel_y": 256.0
+      },
+      "included_components": 1
+    },
+    {
+      "name": "15_confused_question",
+      "file": "15_confused_question.png",
+      "source_bbox": {
+        "x": 1184,
+        "y": 750,
+        "width": 233,
+        "height": 259
+      },
+      "canvas_placement": {
+        "x": 139,
+        "y": 126,
+        "width": 233,
+        "height": 259
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5,
+        "pixel_x": 256.0,
+        "pixel_y": 256.0
+      },
+      "included_components": 3
+    }
+  ]
+}

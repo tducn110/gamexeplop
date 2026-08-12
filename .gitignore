@@ -1,0 +1,12 @@
+node_modules
+dist
+dist-ssr
+*.local
+.env
+.env.*
+.DS_Store
+.codegraph
+.vercel
+
+# Wink deployment evidence (local only)
+artifacts/

@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "game": {
+    "id": "d33cadb6-7648-42c1-bd7b-8f5cfe0474ca",
+    "slug": "gamexeplop-05",
+    "devOrigin": "https://dev-gamexeplop-05.papastudio.net",
+    "localOrigin": "http://127.0.0.1:5173"
+  },
+  "wink": {
+    "environment": "dev",
+    "protocolVersion": 1,
+    "bridgeVersion": "9.0.0",
+    "bridgeSha256": "afe2a789466c3d68f4eec7d8cf2e718f45a29a19a5d8b9eb8c4cec10b18f31eb",
+    "devParentOrigin": "https://dev-winkgames.papastudio.net",
+    "harnessOrigin": "http://127.0.0.1:8787",
+    "devApiBase": "https://dev-api-winkgames.papastudio.net/api/v1"
+  },
+  "semantics": {
+    "roundId": "Generated via winkGame.startRound() inside useGameSession.ts",
+    "completion": "Called via winkGame.completeRound() inside finalizeSession",
+    "score": "Submitted via winkGame.submitFinalScore() inside finalizeSession",
+    "pauseResume": "Handled via winkGame.bindLifecycle() inside useGameSession.ts",
+    "muteUnmute": "Handled via winkGame.bindLifecycle() inside useGameSession.ts"
+  },
+  "files": {
+    "runtimeConfig": "public/wink-runtime-config.json",
+    "bridge": "public/wink-bridge.js",
+    "bridgeLock": "public/wink-bridge.lock.json",
+    "adapters": [
+      "src/integrations/wink/client.ts"
+    ],
+    "tests": [
+      "src/integrations/wink/__tests__/client.test.ts"
+    ]
+  },
+  "commands": {
+    "install": "npm ci",
+    "test": "npm test",
+    "typecheck": "npm run typecheck",
+    "build": "npm run build",
+    "serve": "npm run dev -- --host 127.0.0.1 --port 5173"
+  }
+}
