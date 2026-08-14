@@ -15,7 +15,7 @@ export function RootRoute() {
   const session = useGameSession(store.playerName);
   const gameControllerRef = useRef<{ revive: () => void } | null>(null);
 
-  const { playSlice, playBomb } = useGameSound(store.settings.sfxMuted);
+  useGameSound(store.settings.sfxMuted);
 
   useEffect(() => {
     audioManager.setMusicMuted(store.settings.musicMuted);
@@ -32,20 +32,6 @@ export function RootRoute() {
   }, [session.status]);
 
   useEffect(() => {
-    if (session.callout) {
-      if (session.callout.tone === "perfect" || session.callout.tone === "good") {
-        playSlice(session.callout.combo);
-      }
-    }
-  }, [session.callout, playSlice]);
-
-  useEffect(() => {
-    if (session.status === "revive" || session.status === "gameOver") {
-      playBomb();
-    }
-  }, [session.status, playBomb]);
-
-  useEffect(() => {
     if (store.settingsOpen || store.dashboardOpen) {
       session.pauseGame();
     }
@@ -57,13 +43,11 @@ export function RootRoute() {
     }
   }, []);
 
-  const handleResumeGame = async () => {
-    try {
-      await audioManager.unlockFromGesture();
-      audioManager.requestBgm(audioManager.gameBgmVolume);
-    } catch (error) {
+  const handleResumeGame = () => {
+    audioManager.requestBgm(audioManager.gameBgmVolume);
+    void audioManager.unlockFromGesture().catch((error) => {
       console.warn("Audio unlock failed", error);
-    }
+    });
     session.resumeGame();
   };
 
@@ -78,7 +62,9 @@ export function RootRoute() {
             onGameOver={session.handleGameOverEvent}
             onPlacement={session.pushPlacement}
             onResumeGame={handleResumeGame}
+            showStartPrompt={!session.hasStarted}
             gameControllerRef={gameControllerRef}
+            reducedMotion={store.settings.reducedMotion}
           />
         </Suspense>
 

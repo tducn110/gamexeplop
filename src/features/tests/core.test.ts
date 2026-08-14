@@ -2,8 +2,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { createGame, getGameResult, startDrop, updateGame } from "../core/core";
 import { calculateScore } from "../logic/scoring";
 import { getBlockY } from "../logic/rules";
-import { saveScore, loadScores } from "../backend/scoreApi";
-import { getLeaderboard } from "../backend/leaderboardApi";
+import { saveScore, loadScores, getBestScore } from "../backend/scoreApi";
 
 function withMockedRandom(values: number[], fn: () => void) {
   const spy = vi.spyOn(Math, "random");
@@ -76,7 +75,6 @@ describe("camera rules", () => {
   });
 });
 
-
 describe("local score boundary", () => {
   const storage = new Map<string, string>();
 
@@ -94,15 +92,12 @@ describe("local score boundary", () => {
     vi.unstubAllGlobals();
   });
 
-  it("stores scores and builds a ranked leaderboard", () => {
+  it("stores scores and returns best", () => {
     saveScore({ playerName: "An", score: 30, floors: 2 });
     saveScore({ playerName: "Binh", score: 55, floors: 4 });
 
     const scores = loadScores();
-    const leaderboard = getLeaderboard();
-
     expect(scores).toHaveLength(2);
-    expect(leaderboard[0]).toMatchObject({ rank: 1, playerName: "Nguoi choi 3", score: 800 });
-    expect(leaderboard[1]).toMatchObject({ rank: 2, playerName: "Nguoi choi 4", score: 700 });
+    expect(getBestScore()).toBe(55);
   });
 });

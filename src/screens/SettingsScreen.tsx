@@ -1,4 +1,4 @@
-import { Settings as SettingsIcon, VolumeX, Volume2, Music, Music2 } from "lucide-react";
+import { Settings as SettingsIcon, VolumeX, Volume2, Music, Music2, Vibrate, VibrateOff } from "lucide-react";
 import { PanelFrame } from "@/components/shared/primitives/PanelFrame";
 import { IconButton } from "@/components/shared/primitives/IconButton";
 
@@ -6,18 +6,22 @@ interface SettingsScreenProps {
   open: boolean;
   musicMuted: boolean;
   sfxMuted: boolean;
+  reducedMotion: boolean;
   onClose: () => void;
   onToggleMusic: () => void;
   onToggleSfx: () => void;
+  onToggleMotion: () => void;
 }
 
 export function SettingsScreen({
   open,
   musicMuted,
   sfxMuted,
+  reducedMotion,
   onClose,
   onToggleMusic,
   onToggleSfx,
+  onToggleMotion,
 }: SettingsScreenProps) {
   if (!open) return null;
 
@@ -66,6 +70,23 @@ export function SettingsScreen({
               style={{ fontWeight: "bold", color: !sfxMuted ? "white" : "black" }}
             >
               {!sfxMuted ? "Bật" : "Tắt"}
+            </IconButton>
+          </div>
+
+          <div className="settingsOptionRow">
+            <div className="settingsOptionLabel">
+              {reducedMotion ? <VibrateOff size={20} /> : <Vibrate size={20} />}
+              <span>Rung màn hình</span>
+            </div>
+            <IconButton
+              label={reducedMotion ? "Bật rung" : "Tắt rung"}
+              aria-pressed={!reducedMotion}
+              variant="solid"
+              onClick={onToggleMotion}
+              className={`settingsToggle ${!reducedMotion ? "is-on" : "is-off"}`}
+              style={{ fontWeight: "bold", color: !reducedMotion ? "white" : "black" }}
+            >
+              {!reducedMotion ? "Bật" : "Tắt"}
             </IconButton>
           </div>
         </div>

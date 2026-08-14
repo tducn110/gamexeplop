@@ -30,6 +30,7 @@ export interface FloatingCallout {
 
 export function useGameSession(playerName: string) {
   const [status, setStatus] = useState<GameStatus>("paused");
+  const [hasStarted, setHasStarted] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [sessionKey, setSessionKey] = useState(0);
   const [hud, setHud] = useState<SessionHudState>({
@@ -55,6 +56,7 @@ export function useGameSession(playerName: string) {
     gameOverTimerRef.current = null;
     setHud((current) => ({ ...current, score: 0, floors: 0, combo: 0 }));
     setStatus("paused");
+    setHasStarted(false);
     setSessionKey((current) => current + 1);
     setRevivesUsed(0);
     currentRoundRef.current = winkGame.startRound();
@@ -72,7 +74,10 @@ export function useGameSession(playerName: string) {
   };
 
   const resumeGame = () => {
-    if (status === "paused") setStatus("running");
+    if (status === "paused") {
+      setHasStarted(true);
+      setStatus("running");
+    }
   };
 
   const commitHud = (payload: { score: number; floors: number; combo: number }) => {
@@ -227,6 +232,7 @@ export function useGameSession(playerName: string) {
 
   return {
     status,
+    hasStarted,
     countdown,
     hud,
     lastScore,

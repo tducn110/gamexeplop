@@ -7,8 +7,8 @@
 type SfxName = "bgm" | "slice" | "bomb";
 type AudioUnlockState = "locked" | "unlocking" | "ready" | "suspended" | "failed";
 
-const LANDING_BGM_VOLUME = 0.24;
-const GAME_BGM_VOLUME = 0.16;
+const LANDING_BGM_VOLUME = 0.10;
+const GAME_BGM_VOLUME = 0.08;
 const BUTTON_SFX_VOLUME = 0.58;
 
 interface AudioBuffers {
@@ -294,6 +294,9 @@ class AudioManager {
   setMusicMuted(m: boolean): void {
     this._musicMuted = m;
     this.applyMuteState();
+    if (!m && this.musicShouldPlay && !this._bgmPlaying && this.ctx?.state === "running") {
+      this.startBgm(this.desiredBgmVolume);
+    }
   }
 
   setSfxMuted(m: boolean): void {

@@ -1,4 +1,4 @@
-import { HeartPulse, FastForward, Trophy } from "lucide-react";
+import { HeartPulse, FastForward, Trophy, Video } from "lucide-react";
 import { GameButton } from "@/components/shared/primitives/GameButton";
 import { GAME_TEXT } from "@/features/core/gameText";
 
@@ -29,14 +29,14 @@ export function ReviveScreen({
         <h2 className="gameOverTitle">{GAME_TEXT.REVIVE_TITLE}</h2>
 
         <div className="gameOverScoreBlock">
-          <span style={{ fontSize: "16px", color: "#666" }}>
+          <span style={{ fontSize: "15px", color: "#666", lineHeight: 1.4, padding: "0 10px", whiteSpace: "pre-wrap" }}>
             {GAME_TEXT.REVIVE_META.replace("{floors}", floors.toString())}
           </span>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: "12px", width: "100%", marginTop: "16px" }}>
           <GameButton variant="primary" size="lg" onClick={onRevive} style={{ width: "100%" }}>
-            <HeartPulse size={18} />
+            <Video size={18} />
             {GAME_TEXT.REVIVE_BTN}
           </GameButton>
           <GameButton variant="ghost" size="md" onClick={onSkip} style={{ width: "100%" }}>

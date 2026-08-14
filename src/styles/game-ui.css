@@ -781,7 +781,9 @@
   max-width: min(72vw, 360px);
   letter-spacing: 0.5px;
   text-transform: uppercase;
-  white-space: nowrap;
+  white-space: normal;
+  word-wrap: break-word;
+  text-align: center;
   text-shadow: 0 3px 8px rgba(42, 36, 24, 0.32);
 }
 
@@ -1059,6 +1061,29 @@
 
   .adReviveValue {
     font-size: 17px;
+  }
+}
+
+@media (max-width: 640px), (max-height: 700px) {
+  .gameOverCard {
+    padding: 20px 16px;
+    gap: 12px;
+  }
+  .gameOverCharacter {
+    top: -60px;
+    width: 120px;
+    max-height: 150px;
+  }
+  .gameOverTitle {
+    font-size: 24px;
+    margin-bottom: 4px;
+  }
+  .gameOverScoreBlock strong {
+    font-size: 36px;
+  }
+  .gameOverStats {
+    margin-bottom: 12px;
+    padding-top: 12px;
   }
 }
 

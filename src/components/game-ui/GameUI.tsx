@@ -79,9 +79,11 @@ export function GameUI({ session, store, gameControllerRef }: GameUIProps) {
         open={store.settingsOpen}
         musicMuted={store.settings.musicMuted}
         sfxMuted={store.settings.sfxMuted}
+        reducedMotion={store.settings.reducedMotion}
         onClose={store.closeSettings}
         onToggleMusic={() => store.updateSettings({ musicMuted: !store.settings.musicMuted })}
         onToggleSfx={() => store.updateSettings({ sfxMuted: !store.settings.sfxMuted })}
+        onToggleMotion={() => store.updateSettings({ reducedMotion: !store.settings.reducedMotion })}
       />
     </>
   );

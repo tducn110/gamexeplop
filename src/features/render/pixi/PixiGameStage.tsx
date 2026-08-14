@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Assets, Graphics, Sprite, type Texture } from "pixi.js";
+import { Graphics } from "pixi.js";
 import { createGame, getGameResult, startDrop, updateGame, reviveGame } from "../../core/core";
 import type { GameState, GameStatus } from "../../core/types";
 import { useGameInput } from "../../input/useGameInput";
@@ -10,12 +10,10 @@ import { createSpriteRegistry, destroySpriteRegistry, syncWorldSprites } from ".
 import { createGameTextures, destroyGameTextures, type GameTextures } from "./textures";
 import { applyCameraTransform } from "./camera";
 import { usePixiApp } from "./usePixiApp";
-import type { LeaderboardEntry } from "../../db/schema";
 import { getFloors } from "../../logic/rules";
 import { audioManager } from "../../../utils/audio-manager";
 import { MobileDebugOverlay } from "@/platform/diagnostics/MobileDebugOverlay";
 
-const BACKGROUND_ASSET = "/assets/Background.png";
 
 interface PixiGameStageProps {
   sessionKey: number;
@@ -24,23 +22,9 @@ interface PixiGameStageProps {
   onGameOver: (payload: { score: number; floors: number }) => void;
   onPlacement: (payload: { message: string; tone: "perfect" | "good" | "base"; combo: number }) => void;
   onResumeGame?: () => void;
+  showStartPrompt: boolean;
   gameControllerRef?: React.MutableRefObject<{ revive: () => void } | null>;
-}
-
-function fitBackgroundSprite(sprite: Sprite, width: number, height: number) {
-  const textureWidth = Math.max(1, sprite.texture.width);
-  const textureHeight = Math.max(1, sprite.texture.height);
-  const maxTravel = height * 0.42;
-  const scale = Math.max(width / textureWidth, (height + maxTravel) / textureHeight);
-
-  sprite.anchor.set(0.5);
-  sprite.scale.set(scale);
-}
-
-function positionBackgroundSprite(sprite: Sprite, width: number, height: number, scroll: number) {
-  const maxTravel = height * 0.42;
-  const travel = Math.min(maxTravel, scroll * 0.92);
-  sprite.position.set(width / 2, height / 2 + travel);
+  reducedMotion: boolean;
 }
 
 function drawBackgroundOverlay(g: Graphics, width: number, height: number, score: number, crashT: number) {
@@ -52,7 +36,7 @@ function drawBackgroundOverlay(g: Graphics, width: number, height: number, score
   }
 }
 
-export function PixiGameStage({ sessionKey, status, onScoreChange, onGameOver, onPlacement, onResumeGame, gameControllerRef }: PixiGameStageProps) {
+export function PixiGameStage({ sessionKey, status, onScoreChange, onGameOver, onPlacement, onResumeGame, showStartPrompt, gameControllerRef, reducedMotion }: PixiGameStageProps) {
   const { wrapRef, appRef, layersRef, sizeRef, ready, viewport } = usePixiApp();
   const gameRef = useRef<GameState | null>(null);
   const texturesRef = useRef<GameTextures | null>(null);
@@ -60,10 +44,10 @@ export function PixiGameStage({ sessionKey, status, onScoreChange, onGameOver, o
   const textMapRef = useRef(new Map());
   const finishedKeyRef = useRef<number | null>(null);
   const lastPlacementTokenRef = useRef<number | null>(null);
-  const bgSpriteRef = useRef<Sprite | null>(null);
   const bgGraphicsRef = useRef<Graphics | null>(null);
   const worldMaskRef = useRef<Graphics | null>(null);
   const effectsMaskRef = useRef<Graphics | null>(null);
+  const resumeRequestedRef = useRef(false);
   const [texturesReady, setTexturesReady] = useState(false);
 
   useEffect(() => {
@@ -114,8 +98,6 @@ export function PixiGameStage({ sessionKey, status, onScoreChange, onGameOver, o
       cancelled = true;
       world.mask = null;
       effects.mask = null;
-      bgSpriteRef.current?.destroy();
-      bgSpriteRef.current = null;
       overlay.destroy();
       bgGraphicsRef.current = null;
       worldMask.destroy();
@@ -133,6 +115,10 @@ export function PixiGameStage({ sessionKey, status, onScoreChange, onGameOver, o
   }, [sessionKey, sizeRef]);
 
   useEffect(() => {
+    if (status !== "paused") resumeRequestedRef.current = false;
+  }, [status]);
+
+  useEffect(() => {
     if (gameControllerRef) {
       gameControllerRef.current = {
         revive: () => {
@@ -147,9 +133,11 @@ export function PixiGameStage({ sessionKey, status, onScoreChange, onGameOver, o
 
   useGameInput({
     app: appRef.current,
-    enabled: status === "running" || status === "paused",
+    enabled: texturesReady && (status === "running" || status === "paused"),
     onAction: (intent) => {
       if (status === "paused") {
+        if (!onResumeGame || resumeRequestedRef.current) return;
+        resumeRequestedRef.current = true;
         onResumeGame?.();
       } else {
         if (!gameRef.current) return;
@@ -187,7 +175,7 @@ export function PixiGameStage({ sessionKey, status, onScoreChange, onGameOver, o
           if (game.lastPlacement && game.lastPlacement.token !== lastPlacementTokenRef.current) {
             lastPlacementTokenRef.current = game.lastPlacement.token;
             const topSprite = registry.blocks.get(`block-${game.blocks.length - 1}`) ?? null;
-            runPlacementAnimation(game.lastPlacement.kind, topSprite, layers.world, game.lastPlacement.combo);
+            runPlacementAnimation(game.lastPlacement.kind, topSprite, layers.world, game.lastPlacement.combo, reducedMotion);
             
             const pitch = 1.0 + Math.min(game.lastPlacement.combo, 8) * 0.08;
             audioManager.playSfx("slice", 0.5, pitch);
@@ -246,7 +234,7 @@ export function PixiGameStage({ sessionKey, status, onScoreChange, onGameOver, o
     };
   }, [layersRef]);
 
-  const stageReady = viewport.ready && ready;
+  const stageReady = viewport.ready && ready && texturesReady;
 
   return (
     <>
@@ -257,6 +245,9 @@ export function PixiGameStage({ sessionKey, status, onScoreChange, onGameOver, o
         aria-label="Sân chơi kéo lên trời"
       >
         {!stageReady ? <div className="stage-loading">Đang tải sân chơi...</div> : null}
+        {stageReady && status === "paused" && showStartPrompt ? (
+          <div className="start-ready" role="status">Chạm để bắt đầu</div>
+        ) : null}
       </div>
       <MobileDebugOverlay
         viewport={viewport.diagnostics}

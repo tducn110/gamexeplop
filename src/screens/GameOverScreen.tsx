@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { RotateCcw, Trophy, Clapperboard } from "lucide-react";
+import { RotateCcw, Trophy, Clapperboard, Video } from "lucide-react";
 import { GameButton } from "@/components/shared/primitives/GameButton";
 import type { CharacterAsset } from "@/features/characters/characterAssets";
 
@@ -66,8 +66,8 @@ export function GameOverScreen({
           </div>
           
           {!canSubmitScore && (
-            <div style={{ color: '#ef4444', fontSize: '0.8rem', textAlign: 'center', marginBottom: '8px' }}>
-              CAPABILITY_DENIED: Điểm không được lưu vì chưa đăng nhập.
+            <div style={{ color: '#ef4444', fontSize: '0.85rem', textAlign: 'center', marginBottom: '8px', padding: '0 8px', lineHeight: 1.4, whiteSpace: 'pre-wrap' }}>
+              Điểm không được lưu vì chưa đăng nhập.
             </div>
           )}
 
@@ -82,7 +82,7 @@ export function GameOverScreen({
                 }}
                 style={{ width: "100%" }}
               >
-                <Clapperboard size={18} />
+                <Video size={18} />
                 Quảng Cáo x2
               </GameButton>
             )}

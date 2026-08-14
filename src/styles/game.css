@@ -55,11 +55,11 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
+  right: 0;
+  width: 100%;
+  max-width: 480px;
   margin: 0 auto;
-  width: min(100%, 600px);
-  max-width: 600px;
   height: 100%;
   min-height: 0;
   border-radius: 0;
@@ -90,6 +90,20 @@
   font-size: 15px;
   font-weight: 700;
   background: linear-gradient(180deg, rgba(253, 246, 234, 0.55), rgba(239, 227, 196, 0.76));
+}
+
+.start-ready {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  pointer-events: none;
+  color: var(--ink-dark);
+  font-size: clamp(20px, 5vw, 28px);
+  font-weight: 800;
+  text-shadow: 0 2px 0 rgba(255, 255, 255, 0.7);
 }
 
 .hud-layer {
