@@ -14,6 +14,8 @@ interface GameOverScreenProps {
   onRetry: () => void;
   onApplyX2Score: () => void;
   canSubmitScore?: boolean;
+  scoreError?: string | null;
+  onRetryScoreSubmission: () => void | Promise<void>;
 }
 
 export function GameOverScreen({
@@ -27,6 +29,8 @@ export function GameOverScreen({
   onRetry,
   onApplyX2Score,
   canSubmitScore = true,
+  scoreError = null,
+  onRetryScoreSubmission,
 }: GameOverScreenProps) {
   const [adWatched, setAdWatched] = useState(false);
 
@@ -65,11 +69,22 @@ export function GameOverScreen({
             </div>
           </div>
           
-          {!canSubmitScore && (
+          {scoreError ? (
+            <>
+              <div style={{ color: '#ef4444', fontSize: '0.85rem', textAlign: 'center', marginBottom: '8px', padding: '0 8px', lineHeight: 1.4, whiteSpace: 'pre-wrap' }}>
+                {scoreError}
+              </div>
+              {!scoreError.includes('CAPABILITY_DENIED') && (
+                <GameButton variant="secondary" size="sm" onClick={() => void onRetryScoreSubmission()} style={{ width: "100%", marginBottom: "10px" }}>
+                  Thử lưu điểm lại
+                </GameButton>
+              )}
+            </>
+          ) : !canSubmitScore ? (
             <div style={{ color: '#ef4444', fontSize: '0.85rem', textAlign: 'center', marginBottom: '8px', padding: '0 8px', lineHeight: 1.4, whiteSpace: 'pre-wrap' }}>
-              Điểm không được lưu vì chưa đăng nhập.
+              Điểm không được gửi vì Wink chưa cấp quyền lưu điểm.
             </div>
-          )}
+          ) : null}
 
           <div style={{ display: "flex", flexDirection: "column", gap: "10px", width: "100%" }}>
             {!adWatched && (

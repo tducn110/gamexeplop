@@ -62,6 +62,7 @@ export function RootRoute() {
             onGameOver={session.handleGameOverEvent}
             onPlacement={session.pushPlacement}
             onResumeGame={handleResumeGame}
+            hostPaused={session.hostPaused}
             showStartPrompt={!session.hasStarted}
             gameControllerRef={gameControllerRef}
             reducedMotion={store.settings.reducedMotion}

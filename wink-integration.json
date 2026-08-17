@@ -20,7 +20,7 @@
     "completion": "Called via winkGame.completeRound() inside finalizeSession",
     "score": "Submitted via winkGame.submitFinalScore() inside finalizeSession",
     "pauseResume": "Handled via winkGame.bindLifecycle() inside useGameSession.ts",
-    "muteUnmute": "Handled via winkGame.bindLifecycle() inside useGameSession.ts"
+    "muteUnmute": "Handled via winkGame.bindLifecycle() and audioManager inside useGameSession.ts"
   },
   "files": {
     "runtimeConfig": "public/wink-runtime-config.json",

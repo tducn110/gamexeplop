@@ -17,7 +17,7 @@ interface AudioBuffers {
   bgm: AudioBuffer | null;
 }
 
-class AudioManager {
+export class AudioManager {
   private ctx: AudioContext | null = null;
   private bgmGain: GainNode | null = null;
   private sfxGain: GainNode | null = null;
@@ -30,10 +30,12 @@ class AudioManager {
 
   private _musicMuted = false;
   private _sfxMuted = false;
+  private _hostMuted = false;
   private _loaded = false;
   private _bgmPlaying = false;
   private unlockState: AudioUnlockState = "locked";
-  private visibilityState: DocumentVisibilityState = document.visibilityState;
+  private visibilityState: DocumentVisibilityState =
+    typeof document === "undefined" ? "visible" : document.visibilityState;
   private desiredBgmVolume = LANDING_BGM_VOLUME;
   private musicShouldPlay = false;
   private currentBgmVolume = LANDING_BGM_VOLUME;
@@ -48,8 +50,7 @@ class AudioManager {
       this.bgmGain.connect(this.ctx.destination);
       this.sfxGain.connect(this.ctx.destination);
       
-      this.bgmGain.gain.value = this._musicMuted ? 0 : 1;
-      this.sfxGain.gain.value = this._sfxMuted ? 0 : 1;
+      this.applyMuteState();
     }
   }
 
@@ -89,6 +90,7 @@ class AudioManager {
   get muted() { return this._musicMuted && this._sfxMuted; }
   get musicMuted() { return this._musicMuted; }
   get sfxMuted() { return this._sfxMuted; }
+  get hostMuted() { return this._hostMuted; }
   get loaded() { return this._loaded; }
   get bgmPlaying() { return this._bgmPlaying; }
   get visibilityStateSnapshot() { return this.visibilityState; }
@@ -304,12 +306,18 @@ class AudioManager {
     this.applyMuteState();
   }
 
+  /** Mute imposed by the host/platform; does not change user preferences. */
+  setHostMuted(m: boolean): void {
+    this._hostMuted = m;
+    this.applyMuteState();
+  }
+
   private applyMuteState(): void {
     if (this.bgmGain) {
-      this.bgmGain.gain.value = this._musicMuted ? 0 : 1;
+      this.bgmGain.gain.value = this._musicMuted || this._hostMuted ? 0 : 1;
     }
     if (this.sfxGain) {
-      this.sfxGain.gain.value = this._sfxMuted ? 0 : 1;
+      this.sfxGain.gain.value = this._sfxMuted || this._hostMuted ? 0 : 1;
     }
   }
 

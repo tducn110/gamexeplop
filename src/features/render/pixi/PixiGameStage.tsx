@@ -13,6 +13,7 @@ import { usePixiApp } from "./usePixiApp";
 import { getFloors } from "../../logic/rules";
 import { audioManager } from "../../../utils/audio-manager";
 import { MobileDebugOverlay } from "@/platform/diagnostics/MobileDebugOverlay";
+import { createPortraitBackground, destroyPortraitBackground, syncPortraitBackground, type PortraitBackground } from "./portraitBackground";
 
 
 interface PixiGameStageProps {
@@ -22,6 +23,7 @@ interface PixiGameStageProps {
   onGameOver: (payload: { score: number; floors: number }) => void;
   onPlacement: (payload: { message: string; tone: "perfect" | "good" | "base"; combo: number }) => void;
   onResumeGame?: () => void;
+  hostPaused: boolean;
   showStartPrompt: boolean;
   gameControllerRef?: React.MutableRefObject<{ revive: () => void } | null>;
   reducedMotion: boolean;
@@ -36,7 +38,7 @@ function drawBackgroundOverlay(g: Graphics, width: number, height: number, score
   }
 }
 
-export function PixiGameStage({ sessionKey, status, onScoreChange, onGameOver, onPlacement, onResumeGame, showStartPrompt, gameControllerRef, reducedMotion }: PixiGameStageProps) {
+export function PixiGameStage({ sessionKey, status, onScoreChange, onGameOver, onPlacement, onResumeGame, hostPaused, showStartPrompt, gameControllerRef, reducedMotion }: PixiGameStageProps) {
   const { wrapRef, appRef, layersRef, sizeRef, ready, viewport } = usePixiApp();
   const gameRef = useRef<GameState | null>(null);
   const texturesRef = useRef<GameTextures | null>(null);
@@ -45,6 +47,7 @@ export function PixiGameStage({ sessionKey, status, onScoreChange, onGameOver, o
   const finishedKeyRef = useRef<number | null>(null);
   const lastPlacementTokenRef = useRef<number | null>(null);
   const bgGraphicsRef = useRef<Graphics | null>(null);
+  const portraitBackgroundRef = useRef<PortraitBackground | null>(null);
   const worldMaskRef = useRef<Graphics | null>(null);
   const effectsMaskRef = useRef<Graphics | null>(null);
   const resumeRequestedRef = useRef(false);
@@ -91,11 +94,23 @@ export function PixiGameStage({ sessionKey, status, onScoreChange, onGameOver, o
     worldMaskRef.current = worldMask;
     effectsMaskRef.current = effectsMask;
 
-    // Removed background sprite loading to use CSS pastel kawaii sky
-    // Note: textures are still loaded by createGameTextures
+    let backgroundCancelled = false;
+    createPortraitBackground().then((background) => {
+      if (backgroundCancelled) {
+        destroyPortraitBackground(background);
+        return;
+      }
+      portraitBackgroundRef.current = background;
+      layer.addChildAt(background.container, 0);
+    }).catch((error) => console.error("Failed to load portrait background", error));
 
     return () => {
       cancelled = true;
+      backgroundCancelled = true;
+      if (portraitBackgroundRef.current) {
+        destroyPortraitBackground(portraitBackgroundRef.current);
+        portraitBackgroundRef.current = null;
+      }
       world.mask = null;
       effects.mask = null;
       overlay.destroy();
@@ -133,8 +148,9 @@ export function PixiGameStage({ sessionKey, status, onScoreChange, onGameOver, o
 
   useGameInput({
     app: appRef.current,
-    enabled: texturesReady && (status === "running" || status === "paused"),
+    enabled: texturesReady && !hostPaused && (status === "running" || status === "paused"),
     onAction: (intent) => {
+      if (hostPaused) return;
       if (status === "paused") {
         if (!onResumeGame || resumeRequestedRef.current) return;
         resumeRequestedRef.current = true;
@@ -162,7 +178,7 @@ export function PixiGameStage({ sessionKey, status, onScoreChange, onGameOver, o
       const game = gameRef.current;
       if (!game) return;
 
-      if (status === "running" || status === "gameOver") {
+      if (!hostPaused && (status === "running" || status === "gameOver")) {
         const result = updateGame(game, ticker.deltaMS, sizeRef.current.width, sizeRef.current.height);
         
         if (status === "running") {
@@ -195,9 +211,13 @@ export function PixiGameStage({ sessionKey, status, onScoreChange, onGameOver, o
       }
 
       const { width, height } = sizeRef.current;
-      const parallaxElement = document.getElementById('parallax-wrapper');
-      if (parallaxElement) {
-        parallaxElement.style.transform = `translateY(${game.scroll * 0.6}px)`;
+      if (portraitBackgroundRef.current) {
+        syncPortraitBackground(
+          portraitBackgroundRef.current,
+          width,
+          height,
+          game.scroll,
+        );
       }
       if (bgGraphicsRef.current) {
         drawBackgroundOverlay(bgGraphicsRef.current, width, height, game.score, game.crashT);
@@ -222,7 +242,7 @@ export function PixiGameStage({ sessionKey, status, onScoreChange, onGameOver, o
     return () => {
       ticker.remove(tick);
     };
-  }, [ready, texturesReady, appRef, layersRef, onGameOver, onPlacement, onScoreChange, sessionKey, sizeRef, status]);
+  }, [ready, texturesReady, appRef, layersRef, onGameOver, onPlacement, onScoreChange, sessionKey, sizeRef, status, hostPaused]);
 
   useEffect(() => {
     return () => {

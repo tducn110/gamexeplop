@@ -4,6 +4,8 @@ import { CRASH_CLIMAX_MS } from "../core/constants";
 import type { GameStatus } from "../core/types";
 import { winkGame, type WinkRound } from "../../integrations/wink/client";
 import type { LeaderboardResponse, WinkBridgeState } from "../../integrations/wink/wink-bridge";
+import { audioManager } from "../../utils/audio-manager";
+import { advanceActiveCountdown } from "./activeCountdown";
 
 export interface SessionHudState {
   score: number;
@@ -44,16 +46,30 @@ export function useGameSession(playerName: string) {
   const [callout, setCallout] = useState<FloatingCallout | null>(null);
   const [revivesUsed, setRevivesUsed] = useState(0);
   const [winkState, setWinkState] = useState<WinkBridgeState | null>(null);
+  const [winkScoreError, setWinkScoreError] = useState<string | null>(null);
+  const [hostPaused, setHostPaused] = useState(false);
   const countdownTimerRef = useRef<number | null>(null);
   const gameOverTimerRef = useRef<number | null>(null);
+  const statusRef = useRef(status);
+  const revivesUsedRef = useRef(revivesUsed);
+  const hudRef = useRef(hud);
+  const hostPausedRef = useRef(false);
   
   const currentRoundRef = useRef<WinkRound | null>(null);
   const finalizationRef = useRef<FinalizationState | null>(null);
 
+  useEffect(() => {
+    statusRef.current = status;
+    revivesUsedRef.current = revivesUsed;
+    hudRef.current = hud;
+  }, [status, revivesUsed, hud]);
+
   const startGame = () => {
     if (countdownTimerRef.current) window.clearInterval(countdownTimerRef.current);
-    if (gameOverTimerRef.current) window.clearTimeout(gameOverTimerRef.current);
+    if (gameOverTimerRef.current) window.clearInterval(gameOverTimerRef.current);
     gameOverTimerRef.current = null;
+    hostPausedRef.current = false;
+    setHostPaused(false);
     setHud((current) => ({ ...current, score: 0, floors: 0, combo: 0 }));
     setStatus("paused");
     setHasStarted(false);
@@ -70,11 +86,11 @@ export function useGameSession(playerName: string) {
   };
 
   const pauseGame = () => {
-    if (status === "running") setStatus("paused");
+    if (statusRef.current === "running") setStatus("paused");
   };
 
   const resumeGame = () => {
-    if (status === "paused") {
+    if (statusRef.current === "paused") {
       setHasStarted(true);
       setStatus("running");
     }
@@ -101,18 +117,23 @@ export function useGameSession(playerName: string) {
 
   const handleGameOverEvent = (payload: { score: number; floors: number }) => {
     if (gameOverTimerRef.current) return;
-    gameOverTimerRef.current = window.setTimeout(() => {
+    let crashTimer = { remainingMs: CRASH_CLIMAX_MS, lastTickAt: performance.now() };
+    gameOverTimerRef.current = window.setInterval(() => {
+      const now = performance.now();
+      crashTimer = advanceActiveCountdown(crashTimer, now, hostPausedRef.current);
+      if (crashTimer.remainingMs > 0) return;
+      window.clearInterval(gameOverTimerRef.current!);
       gameOverTimerRef.current = null;
-      if (revivesUsed < 1) {
+      if (revivesUsedRef.current < 1) {
         setStatus("revive");
       } else {
-        finishGame({ score: hud.score, floors: hud.floors });
+        finishGame({ score: hudRef.current.score, floors: hudRef.current.floors });
       }
-    }, CRASH_CLIMAX_MS);
+    }, 50);
   };
 
   const skipRevive = () => {
-    finishGame({ score: hud.score, floors: hud.floors });
+    finishGame({ score: hudRef.current.score, floors: hudRef.current.floors });
   };
 
   const confirmRevive = (reviveCallback: () => void) => {
@@ -123,6 +144,7 @@ export function useGameSession(playerName: string) {
     
     if (countdownTimerRef.current) window.clearInterval(countdownTimerRef.current);
     countdownTimerRef.current = window.setInterval(() => {
+      if (hostPausedRef.current) return;
       setCountdown((current) => {
         if (current === null) return null;
         if (current <= 1) {
@@ -138,7 +160,7 @@ export function useGameSession(playerName: string) {
 
   const applyX2Score = () => {
     setHud((current) => ({ ...current, score: current.score * 2 }));
-    finishGame({ score: hud.score * 2, floors: hud.floors });
+    finishGame({ score: hudRef.current.score * 2, floors: hudRef.current.floors });
   };
 
 
@@ -160,7 +182,7 @@ export function useGameSession(playerName: string) {
         roundId: round.roundId,
         finalScore,
         playDurationMs: Date.now() - round.startedAtMs,
-        scoreSubmitted: !winkGame.canSubmitScore,
+        scoreSubmitted: false,
         completed: false,
         promise: null
       };
@@ -171,21 +193,38 @@ export function useGameSession(playerName: string) {
     if (state.promise) return state.promise;
     
     state.promise = (async () => {
+      setWinkScoreError(null);
+
       try {
-        if (!state.scoreSubmitted && winkGame.canSubmitScore) {
-          await winkGame.submitFinalScore({ score: state.finalScore });
-          state.scoreSubmitted = true;
+        // Score persistence and completion are separate platform operations. A
+        // score failure must not prevent the completion event from being sent.
+        if (!state.scoreSubmitted) {
+          try {
+            await winkGame.submitFinalScore({ score: state.finalScore });
+            state.scoreSubmitted = true;
+          } catch (error) {
+            const code = error instanceof Error && "code" in error
+              ? String((error as Error & { code?: unknown }).code)
+              : "SCORE_SUBMISSION_FAILED";
+            setWinkScoreError(code === "CAPABILITY_DENIED"
+              ? "Điểm không được gửi: tài khoản hiện tại không có quyền lưu điểm (CAPABILITY_DENIED)."
+              : `Không thể lưu điểm (${code}). Có thể thử lại.`);
+          }
         }
-        if (!state.completed) {
-          const ok = winkGame.completeRound(round, { playDurationMs: state.playDurationMs });
-          state.completed = ok;
+
+        try {
+          if (!state.completed) {
+            const ok = winkGame.completeRound(round, { playDurationMs: state.playDurationMs });
+            state.completed = ok;
+          }
+        } catch (error) {
+          console.error("Completion error", error);
         }
-        if (state.completed && state.scoreSubmitted) {
-           currentRoundRef.current = null;
-           refreshLeaderboard();
+
+        if (state.completed) {
+          currentRoundRef.current = state.scoreSubmitted ? null : round;
+          if (state.scoreSubmitted) refreshLeaderboard();
         }
-      } catch (e) {
-        console.error("Finalization error", e);
       } finally {
         state.promise = null;
       }
@@ -197,6 +236,33 @@ export function useGameSession(playerName: string) {
   const refreshLeaderboard = useCallback(() => {
     winkGame.refreshLeaderboard().then(setLeaderboard).catch(console.error);
   }, []);
+
+  const retryScoreSubmission = useCallback(async () => {
+    const state = finalizationRef.current;
+    const round = currentRoundRef.current;
+    if (!state || !round || state.scoreSubmitted || state.promise) return;
+
+    state.promise = (async () => {
+      try {
+        await winkGame.submitFinalScore({ score: state.finalScore });
+        state.scoreSubmitted = true;
+        currentRoundRef.current = null;
+        setWinkScoreError(null);
+        refreshLeaderboard();
+      } catch (error) {
+        const code = error instanceof Error && "code" in error
+          ? String((error as Error & { code?: unknown }).code)
+          : "SCORE_SUBMISSION_FAILED";
+        setWinkScoreError(code === "CAPABILITY_DENIED"
+          ? "Điểm không được gửi: tài khoản hiện tại không có quyền lưu điểm (CAPABILITY_DENIED)."
+          : `Không thể lưu điểm (${code}). Có thể thử lại.`);
+      } finally {
+        state.promise = null;
+      }
+    })();
+
+    return state.promise;
+  }, [refreshLeaderboard]);
 
   const pushPlacement = (payload: { message: string; tone: "perfect" | "good" | "base"; combo: number }) => {
     setCallout({
@@ -216,14 +282,21 @@ export function useGameSession(playerName: string) {
     });
     
     const stopLifecycle = winkGame.bindLifecycle({
-      onPause: pauseGame,
-      onResume: resumeGame,
-      // Add audio-manager calls if accessible globally, but for now we'll just handle state
+      onPause: () => {
+        hostPausedRef.current = true;
+        setHostPaused(true);
+      },
+      onResume: () => {
+        hostPausedRef.current = false;
+        setHostPaused(false);
+      },
+      onMute: () => audioManager.setHostMuted(true),
+      onUnmute: () => audioManager.setHostMuted(false),
     });
 
     return () => {
       if (countdownTimerRef.current) window.clearInterval(countdownTimerRef.current);
-      if (gameOverTimerRef.current) window.clearTimeout(gameOverTimerRef.current);
+      if (gameOverTimerRef.current) window.clearInterval(gameOverTimerRef.current);
       stopObserve();
       stopLifecycle();
       winkGame.dispose();
@@ -250,6 +323,9 @@ export function useGameSession(playerName: string) {
     applyX2Score,
     pushPlacement,
     winkState,
+    winkScoreError,
+    retryScoreSubmission,
+    hostPaused,
     canSubmitScore: winkGame.canSubmitScore,
   };
 }

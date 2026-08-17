@@ -8,26 +8,6 @@
   background: #018bf7;
 }
 
-.sky-loop {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background-image: url('/assets/BackgroundSky.png');
-  background-size: 100% auto;
-  background-position: center bottom;
-  background-repeat: repeat-y;
-}
-
-.backdrop-ink {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background-image: url('/assets/backgroundphone.png');
-  background-size: 100% auto;
-  background-position: center bottom;
-  background-repeat: no-repeat;
-}
-
 .shell-inner {
   position: absolute;
   inset: 0;

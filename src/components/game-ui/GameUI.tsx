@@ -59,6 +59,8 @@ export function GameUI({ session, store, gameControllerRef }: GameUIProps) {
         onRetry={session.restartGame}
         onApplyX2Score={session.applyX2Score}
         canSubmitScore={session.canSubmitScore}
+        scoreError={session.winkScoreError}
+        onRetryScoreSubmission={session.retryScoreSubmission}
       />
 
       <DashboardScreen
