@@ -17,7 +17,7 @@ export interface PortraitBackground {
 }
 
 export async function createPortraitBackground(): Promise<PortraitBackground> {
-  const texture = await Assets.load<Texture>("/assets/backgroundphone.png");
+  const texture = await Assets.load<Texture>("/assets/backgroundphone.webp");
   const container = new Container();
   const sprite = new Sprite(texture);
   container.addChild(sprite);

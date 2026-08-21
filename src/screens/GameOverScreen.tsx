@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { RotateCcw, Trophy, Clapperboard, Video } from "lucide-react";
+import { RotateCcw, Clapperboard, Video } from "lucide-react";
 import { GameButton } from "@/components/shared/primitives/GameButton";
 import type { CharacterAsset } from "@/features/characters/characterAssets";
 
@@ -47,10 +47,6 @@ export function GameOverScreen({
       <div className="gameOverPresentation">
         <img className="gameOverCharacter" src={character.src} alt="" aria-hidden="true" />
         <div className="gameOverCard">
-          <div className="gameOverKicker">
-            <Trophy size={18} />
-            Chim trời đã chặn đường
-          </div>
           <h2 className="gameOverTitle">Game Over</h2>
 
           <div className="gameOverScoreBlock">
@@ -74,11 +70,6 @@ export function GameOverScreen({
               <div style={{ color: '#ef4444', fontSize: '0.85rem', textAlign: 'center', marginBottom: '8px', padding: '0 8px', lineHeight: 1.4, whiteSpace: 'pre-wrap' }}>
                 {scoreError}
               </div>
-              {!scoreError.includes('CAPABILITY_DENIED') && (
-                <GameButton variant="secondary" size="sm" onClick={() => void onRetryScoreSubmission()} style={{ width: "100%", marginBottom: "10px" }}>
-                  Thử lưu điểm lại
-                </GameButton>
-              )}
             </>
           ) : !canSubmitScore ? (
             <div style={{ color: '#ef4444', fontSize: '0.85rem', textAlign: 'center', marginBottom: '8px', padding: '0 8px', lineHeight: 1.4, whiteSpace: 'pre-wrap' }}>
