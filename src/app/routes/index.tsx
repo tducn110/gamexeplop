@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { lazy, Suspense, useRef, useEffect } from "react";
 import { useGameSession } from "@/features/state/useGameSession";
 import { useGameStore } from "@/features/state/useGameStore";
@@ -11,6 +12,7 @@ const PixiGameStage = lazy(async () => {
 });
 
 export function RootRoute() {
+  const { t } = useTranslation();
   const store = useGameStore();
   const session = useGameSession(store.playerName);
   const gameControllerRef = useRef<{ revive: () => void } | null>(null);

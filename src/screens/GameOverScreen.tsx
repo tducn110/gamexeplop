@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { RotateCcw, Clapperboard, Video } from "lucide-react";
+import { RotateCcw, Video } from "lucide-react";
 import { GameButton } from "@/components/shared/primitives/GameButton";
 import type { CharacterAsset } from "@/features/characters/characterAssets";
+import { useTranslation } from "react-i18next";
 
 interface GameOverScreenProps {
   score: number;
@@ -12,10 +13,8 @@ interface GameOverScreenProps {
   countdown: number | null;
   character: CharacterAsset;
   onRetry: () => void;
-  onApplyX2Score: () => void;
-  canSubmitScore?: boolean;
-  scoreError?: string | null;
-  onRetryScoreSubmission: () => void | Promise<void>;
+  adPending?: boolean;
+  onApplyX2Score: () => Promise<boolean>;
 }
 
 export function GameOverScreen({
@@ -27,12 +26,11 @@ export function GameOverScreen({
   countdown,
   character,
   onRetry,
+  adPending = false,
   onApplyX2Score,
-  canSubmitScore = true,
-  scoreError = null,
-  onRetryScoreSubmission,
 }: GameOverScreenProps) {
   const [adWatched, setAdWatched] = useState(false);
+  const { t, i18n } = useTranslation();
 
   useEffect(() => {
     if (visible) {
@@ -47,54 +45,42 @@ export function GameOverScreen({
       <div className="gameOverPresentation">
         <img className="gameOverCharacter" src={character.src} alt="" aria-hidden="true" />
         <div className="gameOverCard">
-          <h2 className="gameOverTitle">Game Over</h2>
+          <h2 className="gameOverTitle">{t("GAME OVER")}</h2>
 
           <div className="gameOverScoreBlock">
-            <span>Điểm độ cao</span>
-            <strong>{score.toLocaleString("vi-VN")}</strong>
+            <span>{t("SCORE")}</span>
+            <strong>{score.toLocaleString(i18n.language === 'vi' ? "vi-VN" : "en-US")}</strong>
           </div>
 
           <div className="gameOverStats">
             <div>
-              <span>Độ cao</span>
-              <strong>{floors} tầng</strong>
+              <span>{t("FLOORS")}</span>
+              <strong>{floors}</strong>
             </div>
             <div>
-              <span>Kỷ lục</span>
-              <strong>{best.toLocaleString("vi-VN")}</strong>
+              <span>{t("BEST")}</span>
+              <strong>{best.toLocaleString(i18n.language === 'vi' ? "vi-VN" : "en-US")}</strong>
             </div>
           </div>
           
-          {scoreError ? (
-            <>
-              <div style={{ color: '#ef4444', fontSize: '0.85rem', textAlign: 'center', marginBottom: '8px', padding: '0 8px', lineHeight: 1.4, whiteSpace: 'pre-wrap' }}>
-                {scoreError}
-              </div>
-            </>
-          ) : !canSubmitScore ? (
-            <div style={{ color: '#ef4444', fontSize: '0.85rem', textAlign: 'center', marginBottom: '8px', padding: '0 8px', lineHeight: 1.4, whiteSpace: 'pre-wrap' }}>
-              Điểm không được gửi vì Wink chưa cấp quyền lưu điểm.
-            </div>
-          ) : null}
-
           <div style={{ display: "flex", flexDirection: "column", gap: "10px", width: "100%" }}>
             {!adWatched && (
               <GameButton
                 variant="warning"
                 size="lg"
-                onClick={() => {
-                  setAdWatched(true);
-                  onApplyX2Score();
+                disabled={adPending}
+                onClick={async () => {
+                  if (await onApplyX2Score()) setAdWatched(true);
                 }}
                 style={{ width: "100%" }}
               >
                 <Video size={18} />
-                Quảng Cáo x2
+                {t("X2 SCORE")}
               </GameButton>
             )}
-            <GameButton variant="primary" size="lg" onClick={onRetry} style={{ width: "100%" }}>
+            <GameButton variant="primary" size="lg" onClick={onRetry} disabled={adPending} style={{ width: "100%" }}>
               <RotateCcw size={18} />
-              Chơi lại
+              {t("RETRY")}
             </GameButton>
           </div>
         </div>

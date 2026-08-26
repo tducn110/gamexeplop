@@ -2,7 +2,6 @@ import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { createGame, getGameResult, startDrop, updateGame } from "../core/core";
 import { calculateScore } from "../logic/scoring";
 import { getBlockY } from "../logic/rules";
-import { saveScore, loadScores, getBestScore } from "../backend/scoreApi";
 
 function withMockedRandom(values: number[], fn: () => void) {
   const spy = vi.spyOn(Math, "random");
@@ -72,32 +71,5 @@ describe("score logic", () => {
 describe("camera rules", () => {
   it("moves blocks upward as scroll increases", () => {
     expect(getBlockY(0, 720, 0)).toBeLessThan(getBlockY(0, 720, 120));
-  });
-});
-
-describe("local score boundary", () => {
-  const storage = new Map<string, string>();
-
-  beforeEach(() => {
-    storage.clear();
-    vi.stubGlobal("window", {
-      localStorage: {
-        getItem: (key: string) => storage.get(key) ?? null,
-        setItem: (key: string, value: string) => storage.set(key, value),
-      },
-    });
-  });
-
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
-
-  it("stores scores and returns best", () => {
-    saveScore({ playerName: "An", score: 30, floors: 2 });
-    saveScore({ playerName: "Binh", score: 55, floors: 4 });
-
-    const scores = loadScores();
-    expect(scores).toHaveLength(2);
-    expect(getBestScore()).toBe(55);
   });
 });

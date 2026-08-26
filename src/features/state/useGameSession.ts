@@ -1,9 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { getBestScore } from "../backend/scoreApi";
 import { CRASH_CLIMAX_MS } from "../core/constants";
 import type { GameStatus } from "../core/types";
-import { winkGame, type WinkRound } from "../../integrations/wink/client";
-import type { LeaderboardResponse, WinkBridgeState } from "../../integrations/wink/wink-bridge";
 import { audioManager } from "../../utils/audio-manager";
 import { advanceActiveCountdown } from "./activeCountdown";
 
@@ -12,15 +9,6 @@ export interface SessionHudState {
   floors: number;
   combo: number;
   best: number;
-}
-
-interface FinalizationState {
-  roundId: string;
-  finalScore: number;
-  playDurationMs: number;
-  scoreSubmitted: boolean;
-  completed: boolean;
-  promise: Promise<void> | null;
 }
 
 export interface FloatingCallout {
@@ -39,14 +27,11 @@ export function useGameSession(playerName: string) {
     score: 0,
     floors: 0,
     combo: 0,
-    best: getBestScore(),
+    best: parseInt(localStorage.getItem('bestScore') || '0', 10),
   });
   const [lastScore, setLastScore] = useState(0);
-  const [leaderboard, setLeaderboard] = useState<LeaderboardResponse | null>(null);
   const [callout, setCallout] = useState<FloatingCallout | null>(null);
   const [revivesUsed, setRevivesUsed] = useState(0);
-  const [winkState, setWinkState] = useState<WinkBridgeState | null>(null);
-  const [winkScoreError, setWinkScoreError] = useState<string | null>(null);
   const [hostPaused, setHostPaused] = useState(false);
   const countdownTimerRef = useRef<number | null>(null);
   const gameOverTimerRef = useRef<number | null>(null);
@@ -54,9 +39,6 @@ export function useGameSession(playerName: string) {
   const revivesUsedRef = useRef(revivesUsed);
   const hudRef = useRef(hud);
   const hostPausedRef = useRef(false);
-  
-  const currentRoundRef = useRef<WinkRound | null>(null);
-  const finalizationRef = useRef<FinalizationState | null>(null);
 
   useEffect(() => {
     statusRef.current = status;
@@ -75,8 +57,6 @@ export function useGameSession(playerName: string) {
     setHasStarted(false);
     setSessionKey((current) => current + 1);
     setRevivesUsed(0);
-    currentRoundRef.current = winkGame.startRound();
-    finalizationRef.current = null;
   };
 
   const restartGame = () => {
@@ -163,106 +143,16 @@ export function useGameSession(playerName: string) {
     finishGame({ score: hudRef.current.score * 2, floors: hudRef.current.floors });
   };
 
-
   const finishGame = (payload: { score: number; floors: number }) => {
     setStatus("gameOver");
     setLastScore(payload.score);
-    const best = Math.max(getBestScore(), payload.score);
-    setHud((current) => ({ ...current, best, score: payload.score, floors: payload.floors }));
     
-    finalizeRound(payload.score);
+    setHud((current) => {
+      const newBest = Math.max(current.best, payload.score);
+      localStorage.setItem('bestScore', newBest.toString());
+      return { ...current, score: payload.score, floors: payload.floors, best: newBest };
+    });
   };
-  
-  const finalizeRound = useCallback(async (finalScore: number) => {
-    const round = currentRoundRef.current;
-    if (!round) return;
-    
-    if (!finalizationRef.current || finalizationRef.current.roundId !== round.roundId) {
-      finalizationRef.current = {
-        roundId: round.roundId,
-        finalScore,
-        playDurationMs: Date.now() - round.startedAtMs,
-        scoreSubmitted: false,
-        completed: false,
-        promise: null
-      };
-    }
-    
-    const state = finalizationRef.current;
-    if (state.completed && state.scoreSubmitted) return;
-    if (state.promise) return state.promise;
-    
-    state.promise = (async () => {
-      setWinkScoreError(null);
-
-      try {
-        // Score persistence and completion are separate platform operations. A
-        // score failure must not prevent the completion event from being sent.
-        if (!state.scoreSubmitted) {
-          try {
-            await winkGame.submitFinalScore({ score: state.finalScore });
-            state.scoreSubmitted = true;
-          } catch (error) {
-            const code = error instanceof Error && "code" in error
-              ? String((error as Error & { code?: unknown }).code)
-              : "SCORE_SUBMISSION_FAILED";
-            setWinkScoreError(code === "CAPABILITY_DENIED"
-              ? "Điểm không được gửi: tài khoản hiện tại không có quyền lưu điểm (CAPABILITY_DENIED)."
-              : `Không thể lưu điểm (${code}). Có thể thử lại.`);
-          }
-        }
-
-        try {
-          if (!state.completed) {
-            const ok = winkGame.completeRound(round, { playDurationMs: state.playDurationMs });
-            state.completed = ok;
-          }
-        } catch (error) {
-          console.error("Completion error", error);
-        }
-
-        if (state.completed) {
-          currentRoundRef.current = state.scoreSubmitted ? null : round;
-          if (state.scoreSubmitted) refreshLeaderboard();
-        }
-      } finally {
-        state.promise = null;
-      }
-    })();
-    
-    return state.promise;
-  }, []);
-
-  const refreshLeaderboard = useCallback(() => {
-    winkGame.refreshLeaderboard().then(setLeaderboard).catch(console.error);
-  }, []);
-
-  const retryScoreSubmission = useCallback(async () => {
-    const state = finalizationRef.current;
-    const round = currentRoundRef.current;
-    if (!state || !round || state.scoreSubmitted || state.promise) return;
-
-    state.promise = (async () => {
-      try {
-        await winkGame.submitFinalScore({ score: state.finalScore });
-        state.scoreSubmitted = true;
-        currentRoundRef.current = null;
-        setWinkScoreError(null);
-        refreshLeaderboard();
-      } catch (error) {
-        const code = error instanceof Error && "code" in error
-          ? String((error as Error & { code?: unknown }).code)
-          : "SCORE_SUBMISSION_FAILED";
-        setWinkScoreError(code === "CAPABILITY_DENIED"
-          ? "Điểm không được gửi: tài khoản hiện tại không có quyền lưu điểm (CAPABILITY_DENIED)."
-          : `Không thể lưu điểm (${code}). Có thể thử lại.`);
-      } finally {
-        state.promise = null;
-      }
-    })();
-
-    return state.promise;
-  }, [refreshLeaderboard]);
 
   const pushPlacement = (payload: { message: string; tone: "perfect" | "good" | "base"; combo: number }) => {
     setCallout({
@@ -274,32 +164,9 @@ export function useGameSession(playerName: string) {
   };
 
   useEffect(() => {
-    const stopObserve = winkGame.observe((state) => {
-      setWinkState(state);
-      if (state?.phase === "ready_anonymous" || state?.phase === "ready_authenticated") {
-        refreshLeaderboard();
-      }
-    });
-    
-    const stopLifecycle = winkGame.bindLifecycle({
-      onPause: () => {
-        hostPausedRef.current = true;
-        setHostPaused(true);
-      },
-      onResume: () => {
-        hostPausedRef.current = false;
-        setHostPaused(false);
-      },
-      onMute: () => audioManager.setHostMuted(true),
-      onUnmute: () => audioManager.setHostMuted(false),
-    });
-
     return () => {
       if (countdownTimerRef.current) window.clearInterval(countdownTimerRef.current);
       if (gameOverTimerRef.current) window.clearInterval(gameOverTimerRef.current);
-      stopObserve();
-      stopLifecycle();
-      winkGame.dispose();
     };
   }, []);
 
@@ -309,7 +176,6 @@ export function useGameSession(playerName: string) {
     countdown,
     hud,
     lastScore,
-    leaderboard,
     callout,
     sessionKey,
     startGame,
@@ -322,10 +188,6 @@ export function useGameSession(playerName: string) {
     confirmRevive,
     applyX2Score,
     pushPlacement,
-    winkState,
-    winkScoreError,
-    retryScoreSubmission,
     hostPaused,
-    canSubmitScore: winkGame.canSubmitScore,
   };
 }

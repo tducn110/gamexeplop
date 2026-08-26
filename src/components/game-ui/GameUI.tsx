@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useGameStore } from "@/features/state/useGameStore";
 import { useGameSession } from "@/features/state/useGameSession";
 import { CountdownOverlay } from "./CountdownOverlay";
@@ -17,6 +17,7 @@ interface GameUIProps {
 }
 
 export function GameUI({ session, store, gameControllerRef }: GameUIProps) {
+  const [adPending, setAdPending] = useState(false);
   const randomizedGameOverKeyRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -31,7 +32,6 @@ export function GameUI({ session, store, gameControllerRef }: GameUIProps) {
         score={session.hud.score}
         floors={session.hud.floors}
         combo={session.hud.combo}
-        showHints={store.settings.showHints}
         onDashboard={store.openDashboard}
         onSettings={store.openSettings}
         onRestart={session.restartGame}
@@ -44,7 +44,16 @@ export function GameUI({ session, store, gameControllerRef }: GameUIProps) {
         floors={session.hud.floors}
         running={session.status === "running"}
         visible={session.status === "revive"}
-        onRevive={() => session.confirmRevive(() => gameControllerRef.current?.revive())}
+        disabled={adPending}
+        onRevive={async () => {
+          if (adPending) return;
+          setAdPending(true);
+          // Simulate ad reward
+          setTimeout(() => {
+            setAdPending(false);
+            session.confirmRevive(() => gameControllerRef.current?.revive());
+          }, 500);
+        }}
         onSkip={session.skipRevive}
       />
 
@@ -57,22 +66,31 @@ export function GameUI({ session, store, gameControllerRef }: GameUIProps) {
         countdown={session.countdown}
         character={store.settings.character}
         onRetry={session.restartGame}
-        onApplyX2Score={session.applyX2Score}
-        canSubmitScore={session.canSubmitScore}
-        scoreError={session.winkScoreError}
-        onRetryScoreSubmission={session.retryScoreSubmission}
+        adPending={adPending}
+        onApplyX2Score={async () => {
+          if (adPending) return false;
+          setAdPending(true);
+          // Simulate ad reward
+          return new Promise((resolve) => {
+            setTimeout(() => {
+              setAdPending(false);
+              session.applyX2Score();
+              resolve(true);
+            }, 500);
+          });
+        }}
       />
 
       <DashboardScreen
         open={store.dashboardOpen}
         best={session.hud.best}
         lastScore={session.lastScore}
-        leaderboard={(session.leaderboard?.entries || []).map(entry => ({
-          rank: entry.rank,
-          playerName: entry.displayName || "Anonymous",
-          score: entry.score,
-          floors: (entry.metadata?.floors as number) || 0,
-        } as any))}
+        leaderboard={[{
+          rank: 1,
+          playerName: store.playerName || "Player",
+          score: session.hud.best,
+          floors: session.hud.floors
+        }]}
         playerName={store.playerName}
         onClose={store.closeDashboard}
       />

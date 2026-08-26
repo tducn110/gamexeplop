@@ -22,8 +22,8 @@ const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
 
-function addFlash(state: GameState, txt: string, x: number, y: number, c: string, sz: number) {
-  const flash: FloatingFlash = { id: state.flashId++, txt, x, y, alpha: 1, c, vy: -1.9, sz };
+function addFlash(state: GameState, txt: string, x: number, y: number, c: string, sz: number, combo?: number) {
+  const flash: FloatingFlash = { id: state.flashId++, txt, combo, x, y, alpha: 1, c, vy: -1.9, sz };
   state.flashes.push(flash);
 }
 
@@ -113,14 +113,14 @@ export function startDrop(
   };
 
   if (outcome.kind === "perfect") {
-    addFlash(state, "Chuẩn!", newX + newWidth / 2, landY - 12, "#e87432", 24);
+    addFlash(state, "PERFECT", newX + newWidth / 2, landY - 12, "#e87432", 24);
     state.perfectHighlight = { x: newX, y: landY, w: newWidth, alpha: 1 };
   } else if (outcome.kind === "good") {
-    addFlash(state, "Rất gần!", newX + newWidth / 2, landY - 12, "#ff007f", 24);
+    addFlash(state, "GOOD", newX + newWidth / 2, landY - 12, "#ff007f", 24);
   }
 
   if (state.combo >= 3) {
-    addFlash(state, `x${state.combo}`, viewportWidth - 60, 65, "#e87432", 19);
+    addFlash(state, "COMBO_X", viewportWidth - 60, 65, "#e87432", 19, state.combo);
   }
 
   if (!isPerfect) {

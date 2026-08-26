@@ -2,7 +2,7 @@ import { Assets, Graphics, Rectangle, Texture, type Application } from "pixi.js"
 
 const BLOCK_TEXTURE_WIDTH = 256;
 const BLOCK_TEXTURE_HEIGHT = 44;
-const BLOCK_SHEET_ASSET = "/assets/blockrender.svg";
+const BLOCK_SHEET_ASSET = "/assets/blockrender.webp";
 const BLOCK_SHEET_VIEWBOX = { width: 1440, height: 810 };
 
 type ViewBoxFrame = { x: number; y: number; width: number; height: number };

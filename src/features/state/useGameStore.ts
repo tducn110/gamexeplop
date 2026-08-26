@@ -4,7 +4,6 @@ import { DEFAULT_CHARACTER_ASSET, pickRandomCharacterAsset, type CharacterAsset 
 
 export interface GameUiSettings {
   reducedMotion: boolean;
-  showHints: boolean;
   musicMuted: boolean;
   sfxMuted: boolean;
   character: CharacterAsset;
@@ -16,7 +15,6 @@ export function useGameStore() {
   const [playerName, setPlayerNameState] = useState(() => loadPlayerName() || "Nguoi choi");
   const [settings, setSettings] = useState<GameUiSettings>({
     reducedMotion: false,
-    showHints: true,
     musicMuted: false,
     sfxMuted: false,
     character: pickRandomCharacterAsset(DEFAULT_CHARACTER_ASSET.id),

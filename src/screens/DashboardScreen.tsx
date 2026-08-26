@@ -1,8 +1,7 @@
 import { ArrowLeft, Layers, Trophy } from "lucide-react";
 import type { LeaderboardEntry } from "@/features/db/schema";
-import { GAME_TEXT } from "@/features/core/gameText";
-import { PanelFrame } from "@/components/shared/primitives";
 import { GameButton } from "@/components/shared/primitives/GameButton";
+import { useTranslation } from "react-i18next";
 
 interface DashboardScreenProps {
   open: boolean;
@@ -14,6 +13,7 @@ interface DashboardScreenProps {
 }
 
 export function DashboardScreen({ open, best, lastScore, leaderboard, playerName, onClose }: DashboardScreenProps) {
+  const { t, i18n } = useTranslation();
   if (!open) return null;
 
   return (
@@ -21,12 +21,12 @@ export function DashboardScreen({ open, best, lastScore, leaderboard, playerName
       <div className="leaderboardCard">
         <div className="leaderboardTitle">
           <Trophy size={22} />
-          <span>Kỷ lục</span>
+          <span>{t("BEST")}</span>
         </div>
 
         <div className="leaderboardBestCard">
-          <p className="leaderboardEyebrow">Kỷ lục của bạn</p>
-          <h1>{best.toLocaleString("vi-VN")}</h1>
+          <p className="leaderboardEyebrow">{t("BEST")}</p>
+          <h1>{best.toLocaleString(i18n.language === 'vi' ? "vi-VN" : "en-US")}</h1>
         </div>
 
         <section className="leaderboardBoard">
@@ -35,14 +35,13 @@ export function DashboardScreen({ open, best, lastScore, leaderboard, playerName
               <Trophy size={16} />
               Ranking 1-10
             </span>
-            <span className="rankColName">TOP ĐIỂM</span>
+            <span className="rankColName">TOP {t("SCORE")}</span>
           </div>
 
           <div className="dashboardRankList leaderboardRankList">
-            {leaderboard.length === 0 ? <p style={{ textAlign: "center", color: "var(--pencil-gray)", fontSize: 14 }}>{GAME_TEXT.LEADERBOARD_EMPTY}</p> : null}
+            {leaderboard.length === 0 ? <p style={{ textAlign: "center", color: "var(--pencil-gray)", fontSize: 14 }}>{t("LEADERBOARD_EMPTY")}</p> : null}
             {leaderboard.map((entry) => {
               const rank = entry.rank;
-              const isLocal = entry.playerName === playerName && entry.score === best;
               
               let badgeBg = "rgba(42,36,24,0.08)";
               let badgeBorder = "rgba(42,36,24,0.25)";
@@ -80,10 +79,10 @@ export function DashboardScreen({ open, best, lastScore, leaderboard, playerName
                     <span>{entry.playerName}</span>
                   </div>
                   <div className="dashboardRankTime">
-                    <Layers size={12} /> {entry.floors} tầng
+                    <Layers size={12} /> {entry.floors} {t("FLOORS").toLowerCase()}
                   </div>
                   <div className="dashboardRankScore">
-                    {entry.score.toLocaleString("vi-VN")}
+                    {entry.score.toLocaleString(i18n.language === 'vi' ? "vi-VN" : "en-US")}
                   </div>
                 </div>
               );
@@ -112,18 +111,18 @@ export function DashboardScreen({ open, best, lastScore, leaderboard, playerName
                     borderColor: "rgba(42,36,24,0.25)"
                   }}
                 >
-                  {playerRow.rank ? `#${playerRow.rank}` : "Mới"}
+                  {playerRow.rank ? `#${playerRow.rank}` : t("NEW")}
                 </div>
                 <div className="dashboardRankName">
-                  <span>Bạn</span>
+                  <span>{t("YOU")}</span>
                 </div>
                 {playerRow.score > 0 && (
                   <div className="dashboardRankTime">
-                    <Layers size={12} /> {playerRow.floors || 0} tầng
+                    <Layers size={12} /> {playerRow.floors || 0} {t("FLOORS").toLowerCase()}
                   </div>
                 )}
                 <div className="dashboardRankScore">
-                  {playerRow.score > 0 ? playerRow.score.toLocaleString("vi-VN") : "Chưa có"}
+                  {playerRow.score > 0 ? playerRow.score.toLocaleString(i18n.language === 'vi' ? "vi-VN" : "en-US") : t("NONE")}
                 </div>
               </div>
             </div>
@@ -132,7 +131,7 @@ export function DashboardScreen({ open, best, lastScore, leaderboard, playerName
 
         <GameButton variant="secondary" size="lg" className="leaderboardBackBtn" onClick={onClose} style={{ marginTop: "auto", width: "100%" }}>
           <ArrowLeft size={16} />
-          Quay lại
+          {t("BACK")}
         </GameButton>
       </div>
     </div>

@@ -37,6 +37,7 @@ export interface Spark {
 export interface FloatingFlash {
   id: number;
   txt: string;
+  combo?: number;
   x: number;
   y: number;
   alpha: number;

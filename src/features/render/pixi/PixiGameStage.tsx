@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Graphics } from "pixi.js";
 import { createGame, getGameResult, startDrop, updateGame, reviveGame } from "../../core/core";
 import type { GameState, GameStatus } from "../../core/types";
@@ -11,7 +12,7 @@ import { createGameTextures, destroyGameTextures, type GameTextures } from "./te
 import { applyCameraTransform } from "./camera";
 import { usePixiApp } from "./usePixiApp";
 import { getFloors } from "../../logic/rules";
-import { audioManager } from "../../../utils/audio-manager";
+import { playDropSfx, playLandSfx, playLoseSfx, playMatchSfx } from "../../../utils/combo-sound";
 import { MobileDebugOverlay } from "@/platform/diagnostics/MobileDebugOverlay";
 import { createPortraitBackground, destroyPortraitBackground, syncPortraitBackground, type PortraitBackground } from "./portraitBackground";
 
@@ -38,8 +39,10 @@ function drawBackgroundOverlay(g: Graphics, width: number, height: number, score
   }
 }
 
-export function PixiGameStage({ sessionKey, status, onScoreChange, onGameOver, onPlacement, onResumeGame, hostPaused, showStartPrompt, gameControllerRef, reducedMotion }: PixiGameStageProps) {
+export function PixiGameStage({
+ sessionKey, status, onScoreChange, onGameOver, onPlacement, onResumeGame, hostPaused, showStartPrompt, gameControllerRef, reducedMotion }: PixiGameStageProps) {
   const { wrapRef, appRef, layersRef, sizeRef, ready, viewport } = usePixiApp();
+  const { t } = useTranslation();
   const gameRef = useRef<GameState | null>(null);
   const texturesRef = useRef<GameTextures | null>(null);
   const registryRef = useRef(createSpriteRegistry());
@@ -158,8 +161,11 @@ export function PixiGameStage({ sessionKey, status, onScoreChange, onGameOver, o
       } else {
         if (!gameRef.current) return;
         const res = startDrop(gameRef.current, sizeRef.current.height, sizeRef.current.width, intent.distance);
+        if (!res.gameOver) {
+          playDropSfx();
+        }
         if (res.gameOver) {
-          audioManager.playSfx("bomb", 0.65);
+          playLoseSfx();
           onGameOver?.(getGameResult(gameRef.current));
         }
       }
@@ -193,11 +199,14 @@ export function PixiGameStage({ sessionKey, status, onScoreChange, onGameOver, o
             const topSprite = registry.blocks.get(`block-${game.blocks.length - 1}`) ?? null;
             runPlacementAnimation(game.lastPlacement.kind, topSprite, layers.world, game.lastPlacement.combo, reducedMotion);
             
-            const pitch = 1.0 + Math.min(game.lastPlacement.combo, 8) * 0.08;
-            audioManager.playSfx("slice", 0.5, pitch);
+            if (game.lastPlacement.kind === "perfect") {
+              playMatchSfx(game.lastPlacement.combo);
+            } else {
+              playLandSfx();
+            }
 
             onPlacement({
-              message: game.lastPlacement.kind === "perfect" ? "Đạt chuẩn!" : game.lastPlacement.kind === "good" ? "Rất gần!" : "Thêm 1 tầng",
+              message: game.lastPlacement.kind === "perfect" ? t("PERFECT") : game.lastPlacement.kind === "good" ? t("GOOD") : t("ONE_FLOOR"),
               tone: game.lastPlacement.kind,
               combo: game.lastPlacement.combo,
             });
@@ -266,7 +275,7 @@ export function PixiGameStage({ sessionKey, status, onScoreChange, onGameOver, o
       >
         {!stageReady ? <div className="stage-loading">Đang tải sân chơi...</div> : null}
         {stageReady && status === "paused" && showStartPrompt ? (
-          <div className="start-ready" role="status">Chạm để bắt đầu</div>
+          <div className="start-ready" role="status">{t("TAP_TO_START")}</div>
         ) : null}
       </div>
       <MobileDebugOverlay

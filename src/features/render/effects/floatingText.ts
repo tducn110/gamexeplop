@@ -1,5 +1,6 @@
 import { Text, type Container } from "pixi.js";
-import type { FloatingFlash, GameState } from "../../core/types";
+import i18n from "../../../i18n";
+import type { GameState } from "../../core/types";
 
 export function syncFloatingTexts(container: Container, state: GameState, map: Map<number, Text>) {
   const activeIds = new Set<number>();
@@ -7,9 +8,12 @@ export function syncFloatingTexts(container: Container, state: GameState, map: M
   for (const flash of state.flashes) {
     activeIds.add(flash.id);
     let text = map.get(flash.id);
+    const displayText = flash.txt === "COMBO_X"
+      ? i18n.t("COMBO_X", { count: flash.combo ?? state.combo })
+      : i18n.t(flash.txt);
     if (!text) {
       text = new Text({
-        text: flash.txt,
+        text: displayText,
         style: {
           fontFamily: "'Be Vietnam Pro', sans-serif",
           fontSize: flash.sz,
@@ -23,7 +27,7 @@ export function syncFloatingTexts(container: Container, state: GameState, map: M
       map.set(flash.id, text);
     }
 
-    text.text = flash.txt;
+    text.text = displayText;
     text.x = flash.x;
     text.y = flash.y;
     text.alpha = Math.min(flash.alpha, 1);

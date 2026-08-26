@@ -1,38 +1,58 @@
 /**
  * Audio Manager — Web Audio API singleton.
- * Manages BGM (loop), SFX slice (polyphonic), SFX bomb.
- * All buffers are preloaded before game starts.
+ * Adapted from 2048 audio architecture:
+ * - HTMLAudioElement for BGM (saves memory)
+ * - Master DynamicsCompressor to prevent clipping
+ * - Smooth gain ramping (ducking, muting)
+ * - Global button SFX listener
  */
 
-type SfxName = "bgm" | "slice" | "bomb";
 type AudioUnlockState = "locked" | "unlocking" | "ready" | "suspended" | "failed";
 
 const LANDING_BGM_VOLUME = 0.10;
 const GAME_BGM_VOLUME = 0.08;
 const BUTTON_SFX_VOLUME = 0.58;
 
-interface AudioBuffers {
-  slice: AudioBuffer | null;
-  bomb: AudioBuffer | null;
-  bgm: AudioBuffer | null;
+const BUTTON_SFX_SELECTOR = [
+  "button",
+  "[role='button']",
+  "a[href]",
+  "input[type='button']",
+  "input[type='submit']",
+  "input[type='reset']",
+].join(",");
+
+function holdAndRamp(param: AudioParam, target: number, at: number, duration: number) {
+  const p = param as AudioParam & { cancelAndHoldAtTime?: (time: number) => AudioParam };
+  if (typeof p.cancelAndHoldAtTime === "function") {
+    p.cancelAndHoldAtTime(at);
+  } else {
+    param.cancelScheduledValues(at);
+    param.setValueAtTime(param.value, at);
+  }
+  param.linearRampToValueAtTime(target, at + duration);
 }
 
 export class AudioManager {
   private ctx: AudioContext | null = null;
+
+  private masterGain: GainNode | null = null;
   private bgmGain: GainNode | null = null;
   private sfxGain: GainNode | null = null;
+  private compressor: DynamicsCompressorNode | null = null;
 
-  private buffers: AudioBuffers = { slice: null, bomb: null, bgm: null };
-  
-  private bgmSourceNode: AudioBufferSourceNode | null = null;
+  private bgmElement: HTMLAudioElement | null = null;
+  private bgmSourceNode: MediaElementAudioSourceNode | null = null;
   private bgmLocalGain: GainNode | null = null;
   private unlockPromise: Promise<void> | null = null;
+  private bgmPlayPromise: Promise<void> | null = null;
 
   private _musicMuted = false;
   private _sfxMuted = false;
   private _hostMuted = false;
   private _loaded = false;
   private _bgmPlaying = false;
+  private bgmPendingStart = false;
   private unlockState: AudioUnlockState = "locked";
   private visibilityState: DocumentVisibilityState =
     typeof document === "undefined" ? "visible" : document.visibilityState;
@@ -40,21 +60,81 @@ export class AudioManager {
   private musicShouldPlay = false;
   private currentBgmVolume = LANDING_BGM_VOLUME;
 
-  private ensureContext() {
-    if (!this.ctx) {
-      this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      
-      this.bgmGain = this.ctx.createGain();
-      this.sfxGain = this.ctx.createGain();
-      
-      this.bgmGain.connect(this.ctx.destination);
-      this.sfxGain.connect(this.ctx.destination);
-      
-      this.applyMuteState();
+  constructor() {
+    if (typeof window !== "undefined") {
+      this.attachGlobalListeners();
     }
   }
 
-  /** Unlock AudioContext (must be called from user gesture) */
+  private attachGlobalListeners() {
+    let bootstrapped = false;
+
+    const handleInteraction = () => {
+      if (!bootstrapped) {
+        bootstrapped = true;
+        this.unlockFromGesture().catch((error) => console.warn("Audio unlock failed", error));
+      }
+      if (this.bgmPendingStart && this.musicShouldPlay && this.unlockState === "ready") {
+        this.startBgm(this.desiredBgmVolume);
+      }
+    };
+
+    const handlePointerDown = (event: PointerEvent) => {
+      handleInteraction();
+      if (this.shouldPlayButtonSfx(event.target)) {
+        this.playButtonSfx();
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.repeat || (event.key !== "Enter" && event.key !== " ")) return;
+      handleInteraction();
+      if (this.shouldPlayButtonSfx(event.target)) {
+        this.playButtonSfx();
+      }
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown, { capture: true });
+    document.addEventListener("keydown", handleKeyDown, { capture: true });
+  }
+
+  private shouldPlayButtonSfx(target: EventTarget | null) {
+    if (!(target instanceof Element)) return false;
+    const control = target.closest(BUTTON_SFX_SELECTOR);
+    if (!(control instanceof HTMLElement)) return false;
+    if (control.closest("[data-sfx='off']")) return false;
+    if (control.getAttribute("aria-disabled") === "true") return false;
+    if ("disabled" in control && Boolean((control as any).disabled)) return false;
+    return true;
+  }
+
+  private ensureContext() {
+    if (!this.ctx) {
+      this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+
+      this.masterGain = this.ctx.createGain();
+      this.masterGain.gain.value = 1.0;
+
+      this.compressor = this.ctx.createDynamicsCompressor();
+      this.compressor.threshold.value = -6;
+      this.compressor.knee.value = 6;
+      this.compressor.ratio.value = 4;
+      this.compressor.attack.value = 0.003;
+      this.compressor.release.value = 0.15;
+
+      this.masterGain.connect(this.compressor);
+      this.compressor.connect(this.ctx.destination);
+
+      this.bgmGain = this.ctx.createGain();
+      this.sfxGain = this.ctx.createGain();
+
+      this.bgmGain.connect(this.masterGain);
+      this.sfxGain.connect(this.masterGain);
+
+      this.applyMuteState(true);
+    }
+  }
+
   async unlock(): Promise<void> {
     return this.unlockFromGesture();
   }
@@ -72,8 +152,15 @@ export class AudioManager {
           await this.ctx!.resume();
         }
 
+        // Play silent buffer for iOS
+        const buffer = this.ctx!.createBuffer(1, 1, 22050);
+        const source = this.ctx!.createBufferSource();
+        source.buffer = buffer;
+        source.connect(this.ctx!.destination);
+        source.start(0);
+
         this.unlockState = this.ctx!.state === "running" ? "ready" : "suspended";
-        if (this.musicShouldPlay && this.buffers.bgm && this.ctx!.state === "running") {
+        if (this.musicShouldPlay && this.ctx!.state === "running") {
           this.startBgm(this.desiredBgmVolume);
         }
       } catch (error) {
@@ -107,143 +194,84 @@ export class AudioManager {
     };
   }
 
-  /**
-   * Preload all audio buffers. Returns progress 0-1 via onProgress.
-   * `basePath` should point to the folder containing audio files, e.g. "/assets/".
-   */
   async preloadAll(
     basePath: string,
     onProgress?: (ratio: number) => void
   ): Promise<void> {
     this.ensureContext();
 
-    const files: { name: keyof AudioBuffers; url: string }[] = [
-      { name: "slice", url: `${basePath}666herohero-slash-21834.mp3` },
-      { name: "bomb", url: `${basePath}bomb.mp3` },
-      { name: "bgm", url: `${basePath}BGMM_Lofi2.mp3` },
-    ];
+    // BGM uses HTMLAudioElement instead of loading into buffer
+    const bgmUrl = `${basePath}BGMM_Lofi2.mp3`;
 
     let loaded = 0;
-    const total = files.length;
+    const total = 1;
 
-    const loadOne = async (name: keyof AudioBuffers, url: string): Promise<void> => {
-      if (this.buffers[name]) {
-        loaded++;
-        onProgress?.(loaded / total);
-        return;
-      }
-      try {
-        const resp = await fetch(url);
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        const arrayBuf = await resp.arrayBuffer();
-        const audioBuf = await this.ctx!.decodeAudioData(arrayBuf);
-        this.buffers[name] = audioBuf;
-      } catch (err) {
-        console.warn(`[AudioManager] Failed to load ${name}:`, err);
-      }
-      loaded++;
-      onProgress?.(loaded / total);
-    };
+    if (!this.bgmElement) {
+      this.bgmElement = new Audio(bgmUrl);
+      this.bgmElement.loop = true;
+      this.bgmElement.preload = "auto";
+      this.bgmElement.setAttribute("playsinline", "true");
 
-    await Promise.all(files.map((f) => loadOne(f.name, f.url)));
+      this.bgmLocalGain = this.ctx!.createGain();
+      this.bgmLocalGain.gain.value = this.currentBgmVolume;
+      this.bgmSourceNode = this.ctx!.createMediaElementSource(this.bgmElement);
+      this.bgmSourceNode.connect(this.bgmLocalGain);
+      this.bgmLocalGain.connect(this.bgmGain!);
+    }
+
+    loaded++;
+    onProgress?.(loaded / total);
+
     this._loaded = true;
-    if (this.musicShouldPlay && this.ctx?.state === "running" && this.buffers.bgm) {
+
+    if (this.musicShouldPlay && this.ctx?.state === "running") {
       this.startBgm(this.desiredBgmVolume);
     }
   }
 
-  /**
-   * Preload only the BGM file (for landing page auto-play).
-   * Returns true if loaded successfully.
-   */
   async preloadBgmOnly(basePath: string): Promise<boolean> {
     this.ensureContext();
-    if (this.buffers.bgm) return true;
+    if (this.bgmElement) return true;
 
-    try {
-      const resp = await fetch(`${basePath}BGMM_Lofi2.mp3`);
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const arrayBuf = await resp.arrayBuffer();
-      const audioBuf = await this.ctx!.decodeAudioData(arrayBuf);
-      this.buffers.bgm = audioBuf;
-      return true;
-    } catch (err) {
-      console.warn("[AudioManager] Failed to preload BGM", err);
-      return false;
-    }
+    const bgmUrl = `${basePath}BGMM_Lofi2.mp3`;
+    this.bgmElement = new Audio(bgmUrl);
+    this.bgmElement.loop = true;
+    this.bgmElement.preload = "auto";
+    this.bgmElement.setAttribute("playsinline", "true");
+
+    this.bgmLocalGain = this.ctx!.createGain();
+    this.bgmLocalGain.gain.value = this.currentBgmVolume;
+    this.bgmSourceNode = this.ctx!.createMediaElementSource(this.bgmElement);
+    this.bgmSourceNode.connect(this.bgmLocalGain);
+    this.bgmLocalGain.connect(this.bgmGain!);
+
+    return true;
   }
 
-  /**
-   * Request BGM playback. If audio is locked, the desired state is preserved
-   * and playback starts when the first gesture unlocks the context.
-   */
   requestBgm(volume = LANDING_BGM_VOLUME): void {
     this.desiredBgmVolume = this.clampVolume(volume);
     this.musicShouldPlay = true;
 
-    if (this.ctx?.state === "running" && this.buffers.bgm) {
+    if (this.ctx?.state === "running") {
       this.startBgm(this.desiredBgmVolume);
     }
   }
 
-  /** Play BGM in a loop at given volume (0-1). */
   playBgm(volume = 0.3): void {
     this.requestBgm(volume);
   }
 
   stopBgm(): void {
     this.musicShouldPlay = false;
-    if (this.bgmSourceNode) {
-      try { this.bgmSourceNode.stop(); } catch {}
-      this.bgmSourceNode.disconnect();
-      this.bgmSourceNode = null;
+    this.bgmPendingStart = false;
+    if (this.bgmElement) {
+      this.bgmElement.pause();
     }
     this._bgmPlaying = false;
   }
 
-  /**
-   * Play a one-shot SFX. Uses pool of up to `maxVoices` simultaneous sources.
-   */
-  private voicePools: Map<SfxName, AudioBufferSourceNode[]> = new Map();
-
-  playSfx(name: SfxName, volume = 0.6, pitch = 1.0, maxVoices = 5): void {
-    if (!this.ctx || !this.buffers[name]) return;
-    
-    const buf = this.buffers[name]!;
-    const source = this.ctx.createBufferSource();
-    source.buffer = buf;
-    source.playbackRate.value = pitch;
-
-    const gain = this.ctx.createGain();
-    gain.gain.value = this.clampVolume(volume);
-
-    // IMPORTANT: Connect to sfxGain, not ctx.destination directly
-    source.connect(gain).connect(this.sfxGain!);
-
-    let pool = this.voicePools.get(name);
-    if (!pool) {
-      pool = [];
-      this.voicePools.set(name, pool);
-    }
-    const alive = [...pool];
-    if (alive.length >= maxVoices) {
-      try { alive[0].stop(); } catch {}
-      alive.shift();
-    }
-    alive.push(source);
-    this.voicePools.set(name, alive);
-
-    source.onended = () => {
-      const currentPool = this.voicePools.get(name);
-      if (currentPool) this.voicePools.set(name, currentPool.filter((item) => item !== source));
-      source.disconnect();
-      gain.disconnect();
-    };
-
-    source.start(0);
-  }
-
   playButtonSfx(volume = BUTTON_SFX_VOLUME): void {
+    if (this._sfxMuted || this._hostMuted) return;
     this.ensureContext();
     if (this.ctx!.state === "suspended") {
       void this.ctx!.resume().catch(() => {});
@@ -269,8 +297,6 @@ export class AudioManager {
 
     click.connect(gain);
     pop.connect(gain);
-    
-    // IMPORTANT: Connect to sfxGain, not ctx.destination directly
     gain.connect(this.sfxGain!);
 
     click.start(now);
@@ -286,7 +312,6 @@ export class AudioManager {
     click.onended = cleanup;
   }
 
-  /** Toggle mute on/off */
   setMuted(m: boolean): void {
     this._musicMuted = m;
     this._sfxMuted = m;
@@ -306,27 +331,31 @@ export class AudioManager {
     this.applyMuteState();
   }
 
-  /** Mute imposed by the host/platform; does not change user preferences. */
   setHostMuted(m: boolean): void {
     this._hostMuted = m;
     this.applyMuteState();
   }
 
-  private applyMuteState(): void {
+  private applyMuteState(immediate = false): void {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const duration = immediate ? 0 : 0.03;
+
     if (this.bgmGain) {
-      this.bgmGain.gain.value = this._musicMuted || this._hostMuted ? 0 : 1;
+      const target = this._musicMuted || this._hostMuted ? 0 : 1;
+      holdAndRamp(this.bgmGain.gain, target, now, duration);
     }
     if (this.sfxGain) {
-      this.sfxGain.gain.value = this._sfxMuted || this._hostMuted ? 0 : 1;
+      const target = this._sfxMuted || this._hostMuted ? 0 : 1;
+      holdAndRamp(this.sfxGain.gain, target, now, duration);
     }
   }
 
-  /** Change BGM volume dynamically (0-1). Does not restart the track. */
   setBgmVolume(volume: number): void {
     this.currentBgmVolume = this.clampVolume(volume);
     this.desiredBgmVolume = this.currentBgmVolume;
-    if (this.bgmLocalGain) {
-      this.bgmLocalGain.gain.value = this.currentBgmVolume;
+    if (this.bgmLocalGain && this.ctx) {
+      holdAndRamp(this.bgmLocalGain.gain, this.currentBgmVolume, this.ctx.currentTime, 0.03);
     }
   }
 
@@ -334,17 +363,8 @@ export class AudioManager {
     this.visibilityState = state;
   }
 
-  /** Destroy all audio resources */
   destroy(): void {
     this.stopBgm();
-    this.voicePools.forEach((pool) =>
-      pool.forEach((s) => {
-        try { s.stop(); } catch {}
-        s.disconnect();
-      })
-    );
-    this.voicePools.clear();
-    
     if (this.bgmLocalGain) {
       this.bgmLocalGain.disconnect();
       this.bgmLocalGain = null;
@@ -357,11 +377,18 @@ export class AudioManager {
       this.sfxGain.disconnect();
       this.sfxGain = null;
     }
+    if (this.compressor) {
+      this.compressor.disconnect();
+      this.compressor = null;
+    }
+    if (this.masterGain) {
+      this.masterGain.disconnect();
+      this.masterGain = null;
+    }
     if (this.ctx) {
       this.ctx.close().catch(() => {});
       this.ctx = null;
     }
-    this.buffers = { slice: null, bomb: null, bgm: null };
     this._loaded = false;
   }
 
@@ -370,38 +397,33 @@ export class AudioManager {
   }
 
   private startBgm(volume: number): void {
-    if (!this.ctx || !this.buffers.bgm) return;
+    if (!this.ctx || !this.bgmElement) return;
     this.currentBgmVolume = this.clampVolume(volume);
 
     if (this.bgmLocalGain) {
       this.bgmLocalGain.gain.value = this.currentBgmVolume;
     }
 
-    if (this._bgmPlaying && this.bgmSourceNode) {
-      return;
-    }
+    if (this._bgmPlaying && !this.bgmElement.paused) return;
+    if (this.bgmPlayPromise) return;
 
-    if (this.bgmSourceNode) {
-      try {
-        this.bgmSourceNode.stop();
-      } catch {}
-      this.bgmSourceNode.disconnect();
-    }
-
-    if (!this.bgmLocalGain) {
-      this.bgmLocalGain = this.ctx.createGain();
-      this.bgmLocalGain.gain.value = this.currentBgmVolume;
-      this.bgmLocalGain.connect(this.bgmGain!);
-    }
-
-    this.bgmSourceNode = this.ctx.createBufferSource();
-    this.bgmSourceNode.buffer = this.buffers.bgm;
-    this.bgmSourceNode.loop = true;
-    this.bgmSourceNode.connect(this.bgmLocalGain);
-    this.bgmSourceNode.start(0);
-    this._bgmPlaying = true;
+    this.bgmPlayPromise = this.bgmElement.play()
+      .then(() => {
+        this._bgmPlaying = true;
+        this.bgmPendingStart = false;
+      })
+      .catch((err) => {
+        this._bgmPlaying = false;
+        if (err?.name === "NotAllowedError") {
+          this.bgmPendingStart = true;
+        } else {
+          console.warn("BGM play failed:", err);
+        }
+      })
+      .finally(() => {
+        this.bgmPlayPromise = null;
+      });
   }
 }
 
-/** Global singleton */
 export const audioManager = new AudioManager();

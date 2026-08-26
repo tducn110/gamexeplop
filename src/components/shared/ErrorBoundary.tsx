@@ -2,8 +2,9 @@ import { Component, type ErrorInfo, type ReactNode } from "react";
 import { audioManager } from "../../utils/audio-manager";
 import { RotateCcw, AlertTriangle } from "lucide-react";
 import { logger } from "../../utils/logger";
+import { withTranslation, WithTranslation } from "react-i18next";
 
-interface Props {
+interface Props extends WithTranslation {
   children: ReactNode;
 }
 
@@ -12,7 +13,7 @@ interface State {
   error: Error | null;
 }
 
-export class ErrorBoundary extends Component<Props, State> {
+class ErrorBoundaryComponent extends Component<Props, State> {
   public state: State = {
     hasError: false,
     error: null,
@@ -29,14 +30,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   private handleReload = () => {
-    try {
-      audioManager.playButtonSfx();
-    } catch {
-      // Ignore audio context errors if it hasn't started
-    }
-    setTimeout(() => {
-      window.location.reload();
-    }, 150);
+    window.location.reload();
   };
 
   public render() {
@@ -91,7 +85,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 color: "#2a2418",
               }}
             >
-              Đã xảy ra sự cố
+              {this.props.t("ERROR_OCCURRED")}
             </h2>
 
             <p
@@ -102,7 +96,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 color: "#8a7d65",
               }}
             >
-              Trò chơi gặp lỗi bất ngờ trong quá trình hoạt động. Hãy thử tải lại trang.
+              {this.props.t("ERROR_DESC")}
             </p>
 
             {this.state.error && (
@@ -147,7 +141,7 @@ export class ErrorBoundary extends Component<Props, State> {
               }}
             >
               <RotateCcw size={16} />
-              Tải lại trò chơi
+              {this.props.t("RELOAD_GAME")}
             </button>
           </div>
         </div>
@@ -157,3 +151,4 @@ export class ErrorBoundary extends Component<Props, State> {
     return this.props.children;
   }
 }
+export const ErrorBoundary = withTranslation()(ErrorBoundaryComponent);

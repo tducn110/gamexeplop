@@ -206,6 +206,14 @@
   margin-left: 8px;
 }
 
+.combo-animate-pop {
+  animation: combo-pop 0.38s ease-out;
+}
+
+.combo-animate-pop-heavy {
+  animation-duration: 0.5s;
+}
+
 .feedbackTextLayer {
   position: absolute;
   inset: 0;
@@ -278,6 +286,7 @@
   border: 2px solid var(--orange-cta);
   color: #fffaf0;
   font-size: 13px;
+  font-weight: 800;
   box-shadow: 0 6px 16px rgba(232, 116, 50, 0.26);
   touch-action: manipulation;
 }
@@ -1103,6 +1112,12 @@
   0% { opacity: 1; transform: translate(-50%, -50%) translateY(0); }
   70% { opacity: 1; transform: translate(-50%, -50%) translateY(-10px); }
   100% { opacity: 0; transform: translate(-50%, -50%) translateY(-24px); }
+}
+
+@keyframes combo-pop {
+  0% { transform: scale(0.88); }
+  55% { transform: scale(1.18); }
+  100% { transform: scale(1); }
 }
 
 .game-canvas-layer {
