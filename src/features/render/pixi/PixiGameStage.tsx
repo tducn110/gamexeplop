@@ -54,6 +54,8 @@ export function PixiGameStage({
   const worldMaskRef = useRef<Graphics | null>(null);
   const effectsMaskRef = useRef<Graphics | null>(null);
   const resumeRequestedRef = useRef(false);
+  const lastMaskSizeRef = useRef({ width: 0, height: 0 });
+  const lastScoreSnapshotRef = useRef({ score: -1, floors: -1, combo: -1 });
   const [texturesReady, setTexturesReady] = useState(false);
 
   useEffect(() => {
@@ -161,10 +163,10 @@ export function PixiGameStage({
       } else {
         if (!gameRef.current) return;
         const res = startDrop(gameRef.current, sizeRef.current.height, sizeRef.current.width, intent.distance);
-        if (!res.gameOver) {
+        // ponytail: Only play drop SFX when placement was accepted (RC-02)
+        if (res.status === "placed") {
           playDropSfx();
-        }
-        if (res.gameOver) {
+        } else if (res.status === "gameOver") {
           playLoseSfx();
           onGameOver?.(getGameResult(gameRef.current));
         }
@@ -188,27 +190,18 @@ export function PixiGameStage({
         const result = updateGame(game, ticker.deltaMS, sizeRef.current.width, sizeRef.current.height);
         
         if (status === "running") {
-          onScoreChange({
-            score: game.score,
-            floors: getFloors(game),
-            combo: game.combo,
-          });
-
-          if (game.lastPlacement && game.lastPlacement.token !== lastPlacementTokenRef.current) {
-            lastPlacementTokenRef.current = game.lastPlacement.token;
-            const topSprite = registry.blocks.get(`block-${game.blocks.length - 1}`) ?? null;
-            runPlacementAnimation(game.lastPlacement.kind, topSprite, layers.world, game.lastPlacement.combo, reducedMotion);
-            
-            if (game.lastPlacement.kind === "perfect") {
-              playMatchSfx(game.lastPlacement.combo);
-            } else {
-              playLandSfx();
-            }
-
-            onPlacement({
-              message: game.lastPlacement.kind === "perfect" ? t("PERFECT") : game.lastPlacement.kind === "good" ? t("GOOD") : t("ONE_FLOOR"),
-              tone: game.lastPlacement.kind,
-              combo: game.lastPlacement.combo,
+          // ponytail: Only invoke React onScoreChange when values genuinely change (RC-08)
+          const floors = getFloors(game);
+          if (
+            game.score !== lastScoreSnapshotRef.current.score ||
+            floors !== lastScoreSnapshotRef.current.floors ||
+            game.combo !== lastScoreSnapshotRef.current.combo
+          ) {
+            lastScoreSnapshotRef.current = { score: game.score, floors, combo: game.combo };
+            onScoreChange({
+              score: game.score,
+              floors,
+              combo: game.combo,
             });
           }
 
@@ -231,20 +224,44 @@ export function PixiGameStage({
       if (bgGraphicsRef.current) {
         drawBackgroundOverlay(bgGraphicsRef.current, width, height, game.score, game.crashT);
       }
-      if (worldMaskRef.current) {
-        worldMaskRef.current.clear();
-        worldMaskRef.current.rect(0, 0, width, height).fill({ color: 0xffffff, alpha: 1 });
-      }
-      if (effectsMaskRef.current) {
-        effectsMaskRef.current.clear();
-        effectsMaskRef.current.rect(0, 0, width, height).fill({ color: 0xffffff, alpha: 1 });
+
+      // ponytail: Only rebuild masks when dimensions change, not every single frame (RC-09)
+      if (lastMaskSizeRef.current.width !== width || lastMaskSizeRef.current.height !== height) {
+        lastMaskSizeRef.current = { width, height };
+        if (worldMaskRef.current) {
+          worldMaskRef.current.clear();
+          worldMaskRef.current.rect(0, 0, width, height).fill({ color: 0xffffff, alpha: 1 });
+        }
+        if (effectsMaskRef.current) {
+          effectsMaskRef.current.clear();
+          effectsMaskRef.current.rect(0, 0, width, height).fill({ color: 0xffffff, alpha: 1 });
+        }
       }
       
       applyCameraTransform(layers.root, game);
 
+      // ponytail: Sync sprites BEFORE consuming placement event so newly created top block exists for animation (RC-03)
       syncWorldSprites(layers.world, game, texturesRef.current!, registry, sizeRef.current.height, sizeRef.current.width);
       syncSparkGraphics(layers.sparkGraphics, game);
       syncFloatingTexts(layers.effects, game, textMap);
+
+      if (!hostPaused && status === "running" && game.lastPlacement && game.lastPlacement.token !== lastPlacementTokenRef.current) {
+        lastPlacementTokenRef.current = game.lastPlacement.token;
+        const topSprite = registry.blocks.get(`block-${game.blocks.length - 1}`) ?? null;
+        runPlacementAnimation(game.lastPlacement.kind, topSprite, layers.world, game.lastPlacement.combo, reducedMotion);
+        
+        if (game.lastPlacement.kind === "perfect") {
+          playMatchSfx(game.lastPlacement.combo);
+        } else {
+          playLandSfx();
+        }
+
+        onPlacement({
+          message: game.lastPlacement.kind === "perfect" ? t("PERFECT") : game.lastPlacement.kind === "good" ? t("GOOD") : t("ONE_FLOOR"),
+          tone: game.lastPlacement.kind,
+          combo: game.lastPlacement.combo,
+        });
+      }
     };
 
     ticker.add(tick);

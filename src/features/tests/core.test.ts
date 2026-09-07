@@ -58,6 +58,32 @@ describe("straw stack core", () => {
     expect(summary.floors).toBe(0);
     expect(state.blocks).toHaveLength(1);
   });
+
+  it("returns status: 'ignored' when drop action occurs during paused or non-moving state", () => {
+    const state = createGame(390);
+    state.sub = "paused";
+    const result = startDrop(state, 720, 390);
+    expect(result.status).toBe("ignored");
+    expect(result.gameOver).toBe(false);
+    expect(state.blocks).toHaveLength(1);
+  });
+
+  it("handles sliver <= MIN_BLOCK_WIDTH by failing game over without increasing floor count or score", () => {
+    const state = createGame(390);
+    const top = state.blocks[0];
+    // Position moving block so overlap is <= 1px (e.g. 0.5px or 1px)
+    state.mv.x = top.x + top.w - 1;
+
+    withMockedRandom([0.5, 0.5], () => {
+      const result = startDrop(state, 720, 390);
+      expect(result.status).toBe("gameOver");
+      expect(result.gameOver).toBe(true);
+    });
+
+    const summary = getGameResult(state);
+    expect(summary.floors).toBe(0);
+    expect(state.blocks).toHaveLength(1);
+  });
 });
 
 describe("score logic", () => {

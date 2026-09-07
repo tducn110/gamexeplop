@@ -16,7 +16,7 @@ import {
   PERFECT_TOLERANCE,
   SPARK_COLORS,
 } from "./constants";
-import type { FloatingFlash, GameResult, GameState } from "./types";
+import type { DropResult, FloatingFlash, GameResult, GameState } from "./types";
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
@@ -66,8 +66,9 @@ export function startDrop(
   viewportHeight: number,
   viewportWidth: number,
   climbDistance = 0
-): { gameOver: boolean; placement: any } {
-  if (state.sub !== "moving") return { gameOver: false, placement: null };
+): DropResult {
+  // ponytail: Return explicit ignored status when drop action is invalid
+  if (state.sub !== "moving") return { status: "ignored", gameOver: false, placement: null };
   
   const topLevel = state.blocks.length - 1;
   const landY = getBlockY(state.blocks.length, viewportHeight, state.scroll);
@@ -92,7 +93,7 @@ export function startDrop(
     });
     state.sub = "gameOver";
     state.crashT = 0;
-    return { gameOver: true, placement: null };
+    return { status: "gameOver", gameOver: true, placement: null };
   }
 
   const isPerfect = overlapResult.totalCut <= PERFECT_TOLERANCE;
@@ -100,6 +101,23 @@ export function startDrop(
 
   let newWidth = isPerfect ? state.mv.w : overlapResult.overlap;
   let newX = isPerfect ? state.mv.x : overlapResult.overlapLeft;
+
+  // ponytail: Sliver <= MIN_BLOCK_WIDTH is a failed placement; fail before mutating tower or score (RC-10)
+  if (newWidth <= MIN_BLOCK_WIDTH) {
+    state.pieces.push({
+      x: state.mv.x,
+      y: landY,
+      w: state.mv.w,
+      vx: rand(-2, 2),
+      vy: -1,
+      rot: 0,
+      vrot: rand(-0.07, 0.07),
+      alpha: 1,
+    });
+    state.sub = "gameOver";
+    state.crashT = 0;
+    return { status: "gameOver", gameOver: true, placement: outcome };
+  }
 
   state.blocks.push({ x: newX, w: newWidth });
   state.combo = outcome.combo;
@@ -168,17 +186,10 @@ export function startDrop(
     });
   }
 
-  if (newWidth <= MIN_BLOCK_WIDTH) {
-    state.sub = "gameOver";
-    state.crashT = 0;
-    return { gameOver: true, placement: outcome };
-  }
-
   state.placed += 1;
-
   state.sub = "paused";
   state.pauseT = PAUSE_MS;
-  return { gameOver: false, placement: outcome };
+  return { status: "placed", gameOver: false, placement: outcome };
 }
 
 export function getMovingBlockY(state: GameState, viewportHeight: number) {
@@ -226,8 +237,6 @@ export function updateGame(state: GameState, dt: number, viewportWidth: number, 
   if (state.sub === "gameOver") {
     state.crashT += dt;
   }
-
-
 
   if (state.perfectHighlight) {
     state.perfectHighlight.alpha -= 0.05;

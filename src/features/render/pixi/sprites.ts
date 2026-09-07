@@ -10,6 +10,10 @@ type BlockView = Container & {
   clip: Graphics;
   sprite: Sprite;
   art: Graphics;
+  cachedWidth?: number;
+  cachedRefWidth?: number;
+  cachedIndex?: number;
+  cachedActive?: boolean;
 };
 
 export interface SpriteRegistry {
@@ -132,7 +136,21 @@ function applyBlockView(
   textures: GameTextures,
   options: { active?: boolean; alpha?: number; rotation?: number; falling?: boolean; index?: number } = {}
 ) {
-  drawBlockArt(view, width, referenceWidth, textures, options);
+  // ponytail: Only redraw geometry/crops when dimensions or appearance change (RC-01)
+  const isDirty =
+    view.cachedWidth !== width ||
+    view.cachedRefWidth !== referenceWidth ||
+    view.cachedIndex !== options.index ||
+    view.cachedActive !== Boolean(options.active);
+
+  if (isDirty) {
+    drawBlockArt(view, width, referenceWidth, textures, options);
+    view.cachedWidth = width;
+    view.cachedRefWidth = referenceWidth;
+    view.cachedIndex = options.index;
+    view.cachedActive = Boolean(options.active);
+  }
+
   view.alpha = options.alpha ?? 1;
   view.visible = true;
 
