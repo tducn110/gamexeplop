@@ -26,7 +26,7 @@ export function RootRoute() {
   useEffect(() => {
     if (session.status === "running") {
       audioManager.requestBgm(audioManager.gameBgmVolume);
-    } else if (session.status === "idle") {
+    } else if (session.status === "idle" || session.status === "paused") {
       audioManager.requestBgm(audioManager.landingBgmVolume);
     } else if (session.status === "gameOver" || session.status === "revive") {
       audioManager.requestBgm(0.05);
@@ -46,8 +46,9 @@ export function RootRoute() {
   }, []);
 
   const handleResumeGame = () => {
+    // ponytail: global pointerdown capture already plays button sfx for .start-ready
     audioManager.requestBgm(audioManager.gameBgmVolume);
-    void audioManager.unlockFromGesture().catch((error) => {
+    void audioManager.unlockAudio().catch((error) => {
       console.warn("Audio unlock failed", error);
     });
     session.resumeGame();

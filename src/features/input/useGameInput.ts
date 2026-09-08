@@ -5,16 +5,19 @@ interface UseGameInputOptions {
   app: Application | null;
   enabled: boolean;
   onAction: (intent: { kind: "drag-up" | "tap"; distance: number }) => void;
+  onPointerDown?: (event: PointerEvent) => void;
 }
 
-export function useGameInput({ app, enabled, onAction }: UseGameInputOptions) {
+export function useGameInput({ app, enabled, onAction, onPointerDown }: UseGameInputOptions) {
   const latestEnabledRef = useRef(enabled);
   const latestOnActionRef = useRef(onAction);
+  const latestOnPointerDownRef = useRef(onPointerDown);
 
   useEffect(() => {
     latestEnabledRef.current = enabled;
     latestOnActionRef.current = onAction;
-  }, [enabled, onAction]);
+    latestOnPointerDownRef.current = onPointerDown;
+  }, [enabled, onAction, onPointerDown]);
 
   useEffect(() => {
     if (!app) return;
@@ -27,6 +30,7 @@ export function useGameInput({ app, enabled, onAction }: UseGameInputOptions) {
 
     const handlePointerDown = (event: PointerEvent) => {
       if (!latestEnabledRef.current) return;
+      latestOnPointerDownRef.current?.(event);
       const rect = canvas.getBoundingClientRect();
       activePointerId = event.pointerId;
       startY = event.clientY - rect.top;

@@ -12,7 +12,7 @@ import { createGameTextures, destroyGameTextures, type GameTextures } from "./te
 import { applyCameraTransform } from "./camera";
 import { usePixiApp } from "./usePixiApp";
 import { getFloors } from "../../logic/rules";
-import { playLandSfx, playLoseSfx, playMatchSfx } from "../../../utils/combo-sound";
+import { playDropSfx, playLandSfx, playLoseSfx, playMatchSfx } from "../../../utils/combo-sound";
 import { MobileDebugOverlay } from "@/platform/diagnostics/MobileDebugOverlay";
 import { createPortraitBackground, destroyPortraitBackground, syncPortraitBackground, type PortraitBackground } from "./portraitBackground";
 
@@ -154,6 +154,14 @@ export function PixiGameStage({
   useGameInput({
     app: appRef.current,
     enabled: texturesReady && !hostPaused && (status === "running" || status === "paused"),
+    onPointerDown: () => {
+      if (hostPaused) return;
+      if (status === "paused") {
+        if (!onResumeGame || resumeRequestedRef.current) return;
+        resumeRequestedRef.current = true;
+        onResumeGame?.();
+      }
+    },
     onAction: (intent) => {
       if (hostPaused) return;
       if (status === "paused") {
@@ -163,10 +171,11 @@ export function PixiGameStage({
       } else {
         if (!gameRef.current) return;
         const res = startDrop(gameRef.current, sizeRef.current.height, sizeRef.current.width, intent.distance);
-        // ponytail: Only play drop SFX when placement was accepted (RC-02)
         if (res.status === "gameOver") {
           playLoseSfx();
           onGameOver?.(getGameResult(gameRef.current));
+        } else if (res.status === "placed") {
+          playDropSfx();
         }
       }
     },
@@ -290,7 +299,26 @@ export function PixiGameStage({
       >
         {!stageReady ? <div className="stage-loading">Đang tải sân chơi...</div> : null}
         {stageReady && status === "paused" && showStartPrompt ? (
-          <div className="start-ready" role="status">{t("TAP_TO_START")}</div>
+          <button
+            type="button"
+            className="start-ready"
+            role="button"
+            aria-label={t("TAP_TO_START")}
+            onClick={(e) => {
+              e.preventDefault();
+              if (resumeRequestedRef.current) return;
+              resumeRequestedRef.current = true;
+              onResumeGame?.();
+            }}
+            onPointerDown={(e) => {
+              e.preventDefault();
+              if (resumeRequestedRef.current) return;
+              resumeRequestedRef.current = true;
+              onResumeGame?.();
+            }}
+          >
+            <span className="start-ready-pill">{t("TAP_TO_START")}</span>
+          </button>
         ) : null}
       </div>
       <MobileDebugOverlay

@@ -1,57 +1,31 @@
-import { sound } from "@pixi/sound";
 import { audioManager } from "./audio-manager";
 
-const SFX_URLS = {
-  drop: "/assets/sfx-drop.mp3",
-  land: "/assets/sfx-land.mp3",
-  match: "/assets/sfx-match.mp3",
-  lose: "/assets/bomb.mp3",
-} as const;
-const SFX = {
-  drop: "game-drop",
-  land: "game-land",
-  match: "game-match",
-  lose: "game-lose",
-} as const;
+/**
+ * Sound triggers for straw tower stacking gameplay.
+ * Integrated with AudioManager Web Audio API graph:
+ * - Dynamic pitch progression on stack land & match combos
+ * - BGM ducking on important match combos and game over
+ * - Pure Web Audio playback routing through sfxMuteGain, master compressor, and destination
+ */
 
-function registerSound(alias: string, url: string) {
-  if (!sound.exists(alias)) {
-    sound.add(alias, { url, preload: true });
-  }
+export function playDropSfx(): void {
+  audioManager.playSfx("drop", { volume: 0.35, playbackRate: 1 });
 }
 
-registerSound(SFX.drop, SFX_URLS.drop);
-registerSound(SFX.land, SFX_URLS.land);
-registerSound(SFX.match, SFX_URLS.match);
-registerSound(SFX.lose, SFX_URLS.lose);
-
-function canPlaySfx() {
-  return !audioManager.sfxMuted && !audioManager.hostMuted;
-}
-
-export function playDropSfx() {
-  if (!canPlaySfx()) return;
-  sound.play(SFX.drop, { volume: 0.32, speed: 1 });
-}
-
-export function playLandSfx(combo = 0) {
-  if (!canPlaySfx()) return;
-  // Restore combo pitch progression: matches old audioManager.playSfx("slice", 0.5, pitch)
-  // pitch was 1.0 + min(combo, 8) * 0.08 — map that to speed here
+export function playLandSfx(combo = 0): void {
+  // Combo pitch progression: matches old pitch = 1.0 + min(combo, 8) * 0.08
   const speed = 1.0 + Math.min(combo, 8) * 0.08;
-  sound.play(SFX.land, { volume: 0.42, speed });
+  audioManager.playSfx("land", { volume: 0.45, playbackRate: speed });
 }
 
-export function playMatchSfx(combo: number) {
-  if (!canPlaySfx()) return;
-  // One shared xylophone cue; restart it so rapid matches do not queue stale notes.
+export function playMatchSfx(combo: number): void {
+  // Combo match cue: pitch progression and BGM ducking
   const speed = Math.min(1.22, 1 + Math.max(0, combo - 1) * 0.06);
-  sound.stop(SFX.match);
-  sound.play(SFX.match, { volume: 0.46, speed });
+  audioManager.duckBgm(0.25, 0.4);
+  audioManager.playSfx("match", { volume: 0.52, playbackRate: speed, maxVoices: 3 });
 }
 
-export function playLoseSfx() {
-  if (!canPlaySfx()) return;
-  sound.stop(SFX.lose);
-  sound.play(SFX.lose, { volume: 0.68, speed: 0.94 });
+export function playLoseSfx(): void {
+  audioManager.duckBgm(1.8, 0.2);
+  audioManager.playSfx("lose", { volume: 0.68, playbackRate: 0.94 });
 }
