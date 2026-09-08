@@ -34,9 +34,12 @@ export function playDropSfx() {
   sound.play(SFX.drop, { volume: 0.32, speed: 1 });
 }
 
-export function playLandSfx() {
+export function playLandSfx(combo = 0) {
   if (!canPlaySfx()) return;
-  sound.play(SFX.land, { volume: 0.42, speed: 1 });
+  // Restore combo pitch progression: matches old audioManager.playSfx("slice", 0.5, pitch)
+  // pitch was 1.0 + min(combo, 8) * 0.08 — map that to speed here
+  const speed = 1.0 + Math.min(combo, 8) * 0.08;
+  sound.play(SFX.land, { volume: 0.42, speed });
 }
 
 export function playMatchSfx(combo: number) {

@@ -12,7 +12,7 @@ import { createGameTextures, destroyGameTextures, type GameTextures } from "./te
 import { applyCameraTransform } from "./camera";
 import { usePixiApp } from "./usePixiApp";
 import { getFloors } from "../../logic/rules";
-import { playDropSfx, playLandSfx, playLoseSfx, playMatchSfx } from "../../../utils/combo-sound";
+import { playLandSfx, playLoseSfx, playMatchSfx } from "../../../utils/combo-sound";
 import { MobileDebugOverlay } from "@/platform/diagnostics/MobileDebugOverlay";
 import { createPortraitBackground, destroyPortraitBackground, syncPortraitBackground, type PortraitBackground } from "./portraitBackground";
 
@@ -164,9 +164,7 @@ export function PixiGameStage({
         if (!gameRef.current) return;
         const res = startDrop(gameRef.current, sizeRef.current.height, sizeRef.current.width, intent.distance);
         // ponytail: Only play drop SFX when placement was accepted (RC-02)
-        if (res.status === "placed") {
-          playDropSfx();
-        } else if (res.status === "gameOver") {
+        if (res.status === "gameOver") {
           playLoseSfx();
           onGameOver?.(getGameResult(gameRef.current));
         }
@@ -253,7 +251,7 @@ export function PixiGameStage({
         if (game.lastPlacement.kind === "perfect") {
           playMatchSfx(game.lastPlacement.combo);
         } else {
-          playLandSfx();
+          playLandSfx(game.lastPlacement.combo);
         }
 
         onPlacement({

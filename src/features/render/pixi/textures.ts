@@ -2,8 +2,9 @@ import { Assets, Graphics, Rectangle, Texture, type Application } from "pixi.js"
 
 const BLOCK_TEXTURE_WIDTH = 256;
 const BLOCK_TEXTURE_HEIGHT = 44;
-const BLOCK_SHEET_ASSET = "/assets/blockrender.webp";
+const BLOCK_SHEET_ASSET = "/assets/blockrender.svg";
 const BLOCK_SHEET_VIEWBOX = { width: 1440, height: 810 };
+
 
 type ViewBoxFrame = { x: number; y: number; width: number; height: number };
 
@@ -74,7 +75,7 @@ function createSparkTexture(app: Application) {
 export async function createGameTextures(app: Application): Promise<GameTextures> {
   const blockSheet = await Assets.load<Texture>({
     src: BLOCK_SHEET_ASSET,
-    data: { resolution: 2 } // Load SVG at 2x resolution for sharpness without breaking 4096px WebGL limits
+    data: { resolution: 2 }, // SVG rendered at 2× → 2880×1620px, within 4096px WebGL limit
   });
   const blocks = BLOCK_FRAMES.map((frame) => createFrameTexture(blockSheet, frame));
   const spark = createSparkTexture(app);
