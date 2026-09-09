@@ -16,6 +16,27 @@ import type { GameState } from "../../core/types";
  *    - Sử dụng hàm `applyCameraTransform` bên dưới để dịch chuyển toàn bộ Root Container.
  *    - Chức năng chính là tạo hiệu ứng rung lắc (Screen Shake) khi Game Over.
  */
+let impactShake = {
+  intensity: 0,
+  durationMs: 0,
+  startTime: 0,
+};
+
+/**
+ * Kích hoạt rung toàn màn hình (root layer) khi khối rơm đáp xuống và tháp đẩy lên
+ */
+export function triggerPlacementCameraShake(intensity = 5, durationMs = 180) {
+  impactShake = {
+    intensity,
+    durationMs,
+    startTime: performance.now(),
+  };
+}
+
+export function resetCameraShake() {
+  impactShake = { intensity: 0, durationMs: 0, startTime: 0 };
+}
+
 export function applyCameraTransform(
   rootLayer: Container,
   state: GameState,
@@ -28,13 +49,26 @@ export function applyCameraTransform(
   let shakeX = 0;
   let shakeY = 0;
 
-  // Hiệu ứng rung màn hình khi tháp đổ
+  // 1. Hiệu ứng rung phản hồi lực khi đặt khối rơm (Placement Impact & Camera Rise)
+  const now = performance.now();
+  const elapsed = now - impactShake.startTime;
+  if (enableShake && elapsed < impactShake.durationMs) {
+    const progress = elapsed / impactShake.durationMs;
+    // Exponential decay: dập tắt dao động tự nhiên
+    const decay = Math.exp(-progress * 3.5) * (1 - progress);
+    const currentIntensity = impactShake.intensity * decay;
+    // Rung ngang ngẫu nhiên + dập dọc theo quán tính khối rơm
+    shakeX = (Math.random() - 0.5) * currentIntensity * 1.2;
+    shakeY = (Math.random() - 0.5) * currentIntensity * 0.8 + Math.sin(progress * Math.PI) * (currentIntensity * 0.35);
+  }
+
+  // 2. Hiệu ứng rung lắc mạnh khi sập tháp (Game Over Crash)
   if (enableShake && state.sub === "gameOver" && state.crashT < 620) {
-    const intensity = (1 - state.crashT / 620) * 9;
+    const intensity = (1 - state.crashT / 620) * 12;
     shakeX = (Math.random() - 0.5) * intensity;
     shakeY = (Math.random() - 0.5) * intensity;
   }
 
-  // Khóa / Giữ màn hình ở vị trí gốc kèm hiệu ứng rung
+  // Dịch chuyển toàn bộ Root Container (màn hình, nền, khối rơm, hiệu ứng)
   rootLayer.position.set(shakeX, shakeY);
 }

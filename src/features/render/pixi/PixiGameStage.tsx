@@ -9,7 +9,7 @@ import { syncFloatingTexts } from "../effects/floatingText";
 import { destroyFeedbackAnimations, runPlacementAnimation } from "../animations/feedbackAnimations";
 import { createSpriteRegistry, destroySpriteRegistry, syncWorldSprites } from "./sprites";
 import { createGameTextures, destroyGameTextures, type GameTextures } from "./textures";
-import { applyCameraTransform } from "./camera";
+import { applyCameraTransform, triggerPlacementCameraShake, resetCameraShake } from "./camera";
 import { usePixiApp } from "./usePixiApp";
 import { getFloors } from "../../logic/rules";
 import { playDropSfx, playLandSfx, playLoseSfx, playMatchSfx } from "../../../utils/combo-sound";
@@ -245,7 +245,7 @@ export function PixiGameStage({
         }
       }
       
-      applyCameraTransform(layers.root, game);
+      applyCameraTransform(layers.root, game, { enableShake: !reducedMotion });
 
       // ponytail: Sync sprites BEFORE consuming placement event so newly created top block exists for animation (RC-03)
       syncWorldSprites(layers.world, game, texturesRef.current!, registry, sizeRef.current.height, sizeRef.current.width);
@@ -257,6 +257,17 @@ export function PixiGameStage({
         const topSprite = registry.blocks.get(`block-${game.blocks.length - 1}`) ?? null;
         runPlacementAnimation(game.lastPlacement.kind, topSprite, layers.world, game.lastPlacement.combo, reducedMotion);
         
+        // Rung toàn màn hình đồng bộ lúc khối rơm đáp xuống và tháp đẩy lên
+        if (!reducedMotion) {
+          const intensity = game.lastPlacement.kind === "perfect"
+            ? 7 + Math.min(game.lastPlacement.combo, 8) * 1.2
+            : game.lastPlacement.kind === "good"
+            ? 4.5
+            : 2.8;
+          const duration = game.lastPlacement.kind === "perfect" ? 220 : 150;
+          triggerPlacementCameraShake(intensity, duration);
+        }
+
         if (game.lastPlacement.kind === "perfect") {
           playMatchSfx(game.lastPlacement.combo);
         } else {
@@ -275,10 +286,11 @@ export function PixiGameStage({
     return () => {
       ticker.remove(tick);
     };
-  }, [ready, texturesReady, appRef, layersRef, onGameOver, onPlacement, onScoreChange, sessionKey, sizeRef, status, hostPaused]);
+  }, [ready, texturesReady, appRef, layersRef, onGameOver, onPlacement, onScoreChange, sessionKey, sizeRef, status, hostPaused, reducedMotion]);
 
   useEffect(() => {
     return () => {
+      resetCameraShake();
       if (layersRef.current) {
         destroyFeedbackAnimations(layersRef.current.world);
         layersRef.current.root.position.set(0, 0);
