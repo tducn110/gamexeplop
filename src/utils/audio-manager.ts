@@ -24,14 +24,14 @@ export type AudioUnlockState = "locked" | "unlocking" | "ready" | "suspended" | 
 
 export const AUDIO_VOLUME = {
   master: 1.0,
-  landingBgm: 0.24,
-  gameBgm: 0.20,
-  button: 0.60,
-  drop: 0.55,
-  land: 0.70,
-  match: 0.85,
-  lose: 0.80,
-  tap: 0.60,
+  landingBgm: 0.45,
+  gameBgm: 0.35,
+  button: 0.70,
+  drop: 0.70,
+  land: 0.85,
+  match: 0.95,
+  lose: 0.95,
+  tap: 0.70,
 } as const;
 
 export type SfxName = "drop" | "land" | "match" | "lose" | "tap";
@@ -212,11 +212,11 @@ export class AudioManager {
       this.masterGain.gain.value = AUDIO_VOLUME.master;
 
       this.compressor = this.ctx.createDynamicsCompressor();
-      this.compressor.threshold.value = -6;
-      this.compressor.knee.value = 6;
-      this.compressor.ratio.value = 4;
-      this.compressor.attack.value = 0.003;
-      this.compressor.release.value = 0.15;
+      this.compressor.threshold.value = -1.5;
+      this.compressor.knee.value = 3;
+      this.compressor.ratio.value = 12;
+      this.compressor.attack.value = 0.002;
+      this.compressor.release.value = 0.10;
 
       this.masterGain.connect(this.compressor);
       this.compressor.connect(this.ctx.destination);

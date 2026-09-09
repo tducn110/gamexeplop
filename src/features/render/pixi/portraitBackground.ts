@@ -36,24 +36,29 @@ export function syncPortraitBackground(
   height: number,
   scroll: number,
 ): void {
-  const scale = Math.max(width / background.texture.width, height / background.texture.height);
+  // Scale with 30% sky headroom to allow smooth continuous downward parallax as tower ascends
+  const scale = Math.max(width / background.texture.width, (height * 1.30) / background.texture.height);
   const sceneHeight = background.texture.height * scale;
-  const courtyardDistance = Math.max(1, sceneHeight * 0.18);
-  const skyBandDistance = Math.max(1, sceneHeight * 0.22);
+  const maxScrollDown = sceneHeight - height;
+  const baseY = height - sceneHeight;
 
   background.sprite.scale.set(scale);
   background.sprite.x = (width - background.sprite.width) / 2;
 
-  if (scroll <= courtyardDistance) {
-    background.phase = "start-courtyard";
-    background.sprite.y = height - sceneHeight + scroll * 0.18;
-    return;
-  }
+  // Smooth monotonic asymptotic parallax: transitions from ground courtyard into high sky
+  // Eliminates sawtooth modulo resetting that caused periodic upward jumping / "đẩy lên"
+  const progress = 1 - Math.exp(-Math.max(0, scroll) / 900);
+  background.sprite.y = baseY + maxScrollDown * progress;
 
-  const skyScroll = scroll - courtyardDistance;
-  const band = Math.floor(skyScroll / skyBandDistance) % 3;
-  background.phase = PORTRAIT_BACKGROUND_PHASES[band + 1];
-  background.sprite.y = height - sceneHeight + courtyardDistance * 0.18 + (skyScroll % skyBandDistance) * 0.08;
+  if (progress < 0.25) {
+    background.phase = "start-courtyard";
+  } else if (progress < 0.55) {
+    background.phase = "sky-low";
+  } else if (progress < 0.85) {
+    background.phase = "sky-mid";
+  } else {
+    background.phase = "sky-high";
+  }
 }
 
 export function destroyPortraitBackground(background: PortraitBackground): void {
