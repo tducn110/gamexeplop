@@ -51,10 +51,7 @@ export function PixiGameStage({
   const lastPlacementTokenRef = useRef<number | null>(null);
   const bgGraphicsRef = useRef<Graphics | null>(null);
   const portraitBackgroundRef = useRef<PortraitBackground | null>(null);
-  const worldMaskRef = useRef<Graphics | null>(null);
-  const effectsMaskRef = useRef<Graphics | null>(null);
   const resumeRequestedRef = useRef(false);
-  const lastMaskSizeRef = useRef({ width: 0, height: 0 });
   const lastScoreSnapshotRef = useRef({ score: -1, floors: -1, combo: -1 });
   const [texturesReady, setTexturesReady] = useState(false);
 
@@ -87,17 +84,10 @@ export function PixiGameStage({
   useEffect(() => {
     if (!ready || !appRef.current || !layersRef.current) return;
     let cancelled = false;
-    const { background: layer, root, world, effects } = layersRef.current;
+    const { background: layer } = layersRef.current;
     const overlay = new Graphics();
-    const worldMask = new Graphics();
-    const effectsMask = new Graphics();
     layer.addChild(overlay);
-    root.addChild(worldMask, effectsMask);
-    world.mask = worldMask;
-    effects.mask = effectsMask;
     bgGraphicsRef.current = overlay;
-    worldMaskRef.current = worldMask;
-    effectsMaskRef.current = effectsMask;
 
     let backgroundCancelled = false;
     createPortraitBackground().then((background) => {
@@ -116,14 +106,8 @@ export function PixiGameStage({
         destroyPortraitBackground(portraitBackgroundRef.current);
         portraitBackgroundRef.current = null;
       }
-      world.mask = null;
-      effects.mask = null;
       overlay.destroy();
       bgGraphicsRef.current = null;
-      worldMask.destroy();
-      effectsMask.destroy();
-      worldMaskRef.current = null;
-      effectsMaskRef.current = null;
     };
   }, [ready, appRef, layersRef, sizeRef]);
 
@@ -132,6 +116,15 @@ export function PixiGameStage({
     gameRef.current = createGame(sizeRef.current.width);
     finishedKeyRef.current = null;
     lastPlacementTokenRef.current = null;
+    lastScoreSnapshotRef.current = { score: -1, floors: -1, combo: -1 };
+    resetCameraShake();
+    if (layersRef.current) {
+      destroyFeedbackAnimations(layersRef.current.world);
+      layersRef.current.world.position.set(0, 0);
+      layersRef.current.root.position.set(0, 0);
+    }
+    destroySpriteRegistry(registryRef.current);
+    registryRef.current = createSpriteRegistry();
   }, [sessionKey, sizeRef]);
 
   useEffect(() => {
@@ -230,19 +223,6 @@ export function PixiGameStage({
       }
       if (bgGraphicsRef.current) {
         drawBackgroundOverlay(bgGraphicsRef.current, width, height, game.score, game.crashT);
-      }
-
-      // ponytail: Only rebuild masks when dimensions change, not every single frame (RC-09)
-      if (lastMaskSizeRef.current.width !== width || lastMaskSizeRef.current.height !== height) {
-        lastMaskSizeRef.current = { width, height };
-        if (worldMaskRef.current) {
-          worldMaskRef.current.clear();
-          worldMaskRef.current.rect(0, 0, width, height).fill({ color: 0xffffff, alpha: 1 });
-        }
-        if (effectsMaskRef.current) {
-          effectsMaskRef.current.clear();
-          effectsMaskRef.current.rect(0, 0, width, height).fill({ color: 0xffffff, alpha: 1 });
-        }
       }
       
       applyCameraTransform(layers.root, game, { enableShake: !reducedMotion });

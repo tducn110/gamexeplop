@@ -127,6 +127,13 @@ function drawBlockArt(
   }
 }
 
+function safeDestroyBlockView(view: BlockView) {
+  if (view.sprite) {
+    view.sprite.mask = null;
+  }
+  view.destroy({ children: true });
+}
+
 function applyBlockView(
   view: BlockView,
   x: number,
@@ -153,6 +160,7 @@ function applyBlockView(
 
   view.alpha = options.alpha ?? 1;
   view.visible = true;
+  view.sprite.visible = width > 0;
 
   if (options.falling) {
     view.pivot.set(width / 2, BLOCK_HEIGHT / 2);
@@ -162,6 +170,7 @@ function applyBlockView(
     view.pivot.set(0, 0);
     view.position.set(x, y);
     view.rotation = 0;
+    view.scale.set(1, 1);
   }
 }
 
@@ -172,7 +181,6 @@ export function createSpriteRegistry(): SpriteRegistry {
     moving: null,
     dropping: null,
     perfectHighlight: null,
-
   };
 }
 
@@ -196,7 +204,7 @@ export function syncWorldSprites(
 
   for (const [key, view] of registry.blocks.entries()) {
     if (!activeBlockIds.has(key)) {
-      view.destroy({ children: true });
+      safeDestroyBlockView(view);
       registry.blocks.delete(key);
     }
   }
@@ -233,7 +241,7 @@ export function syncWorldSprites(
 
   for (const [key, view] of registry.pieces.entries()) {
     if (!activePieceIds.has(key)) {
-      view.destroy({ children: true });
+      safeDestroyBlockView(view);
       registry.pieces.delete(key);
     }
   }
@@ -260,14 +268,21 @@ export function syncWorldSprites(
   } else if (registry.perfectHighlight) {
     registry.perfectHighlight.visible = false;
   }
-
 }
 
 export function destroySpriteRegistry(registry: SpriteRegistry) {
-  for (const view of registry.blocks.values()) view.destroy({ children: true });
-  for (const view of registry.pieces.values()) view.destroy({ children: true });
-  registry.moving?.destroy({ children: true });
-  registry.dropping?.destroy({ children: true });
+  for (const view of registry.blocks.values()) safeDestroyBlockView(view);
+  registry.blocks.clear();
+  for (const view of registry.pieces.values()) safeDestroyBlockView(view);
+  registry.pieces.clear();
+  if (registry.moving) {
+    safeDestroyBlockView(registry.moving);
+    registry.moving = null;
+  }
+  if (registry.dropping) {
+    safeDestroyBlockView(registry.dropping);
+    registry.dropping = null;
+  }
   registry.perfectHighlight?.destroy();
-
+  registry.perfectHighlight = null;
 }
