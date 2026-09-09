@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useGameStore } from "@/features/state/useGameStore";
 import { useGameSession } from "@/features/state/useGameSession";
 import { CountdownOverlay } from "./CountdownOverlay";
@@ -17,7 +17,6 @@ interface GameUIProps {
 }
 
 export function GameUI({ session, store, gameControllerRef }: GameUIProps) {
-  const [adPending, setAdPending] = useState(false);
   const randomizedGameOverKeyRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -44,15 +43,8 @@ export function GameUI({ session, store, gameControllerRef }: GameUIProps) {
         floors={session.hud.floors}
         running={session.status === "running"}
         visible={session.status === "revive"}
-        disabled={adPending}
-        onRevive={async () => {
-          if (adPending) return;
-          setAdPending(true);
-          // Simulate ad reward
-          setTimeout(() => {
-            setAdPending(false);
-            session.confirmRevive(() => gameControllerRef.current?.revive());
-          }, 500);
+        onRevive={() => {
+          session.confirmRevive(() => gameControllerRef.current?.revive());
         }}
         onSkip={session.skipRevive}
       />
@@ -66,18 +58,9 @@ export function GameUI({ session, store, gameControllerRef }: GameUIProps) {
         countdown={session.countdown}
         character={store.settings.character}
         onRetry={session.restartGame}
-        adPending={adPending}
         onApplyX2Score={async () => {
-          if (adPending) return false;
-          setAdPending(true);
-          // Simulate ad reward
-          return new Promise((resolve) => {
-            setTimeout(() => {
-              setAdPending(false);
-              session.applyX2Score();
-              resolve(true);
-            }, 500);
-          });
+          session.applyX2Score();
+          return true;
         }}
       />
 

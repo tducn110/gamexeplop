@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { RotateCcw, Video } from "lucide-react";
+import { RotateCcw, Clapperboard } from "lucide-react";
 import { GameButton } from "@/components/shared/primitives/GameButton";
 import type { CharacterAsset } from "@/features/characters/characterAssets";
 import { useTranslation } from "react-i18next";
@@ -74,7 +74,7 @@ export function GameOverScreen({
                 }}
                 style={{ width: "100%" }}
               >
-                <Video size={18} />
+                <Clapperboard size={20} />
                 {t("X2 SCORE")}
               </GameButton>
             )}

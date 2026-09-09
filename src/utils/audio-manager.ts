@@ -23,15 +23,15 @@ export interface AudioPolicyState {
 export type AudioUnlockState = "locked" | "unlocking" | "ready" | "suspended" | "failed";
 
 export const AUDIO_VOLUME = {
-  master: 0.85,
-  landingBgm: 0.18,
-  gameBgm: 0.15,
-  button: 0.40,
-  drop: 0.35,
-  land: 0.45,
-  match: 0.50,
-  lose: 0.65,
-  tap: 0.40,
+  master: 1.0,
+  landingBgm: 0.24,
+  gameBgm: 0.20,
+  button: 0.60,
+  drop: 0.55,
+  land: 0.70,
+  match: 0.85,
+  lose: 0.80,
+  tap: 0.60,
 } as const;
 
 export type SfxName = "drop" | "land" | "match" | "lose" | "tap";
