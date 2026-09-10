@@ -3,6 +3,7 @@ import { CRASH_CLIMAX_MS } from "../core/constants";
 import type { GameStatus } from "../core/types";
 import { audioManager } from "../../utils/audio-manager";
 import { advanceActiveCountdown } from "./activeCountdown";
+import { useWinkIntegration } from "../../integrations/wink/useWinkIntegration";
 
 export interface SessionHudState {
   score: number;
@@ -19,6 +20,7 @@ export interface FloatingCallout {
 }
 
 export function useGameSession(playerName: string) {
+  const wink = useWinkIntegration();
   const [status, setStatus] = useState<GameStatus>("paused");
   const [hasStarted, setHasStarted] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
@@ -46,6 +48,13 @@ export function useGameSession(playerName: string) {
     hudRef.current = hud;
   }, [status, revivesUsed, hud]);
 
+  useEffect(() => {
+    if (wink.hostPaused !== hostPaused) {
+      setHostPaused(wink.hostPaused);
+      hostPausedRef.current = wink.hostPaused;
+    }
+  }, [wink.hostPaused, hostPaused]);
+
   const startGame = () => {
     if (countdownTimerRef.current) window.clearInterval(countdownTimerRef.current);
     if (gameOverTimerRef.current) window.clearInterval(gameOverTimerRef.current);
@@ -71,7 +80,10 @@ export function useGameSession(playerName: string) {
 
   const resumeGame = () => {
     if (statusRef.current === "paused") {
-      setHasStarted(true);
+      if (!hasStarted) {
+        setHasStarted(true);
+        wink.gameplayStart();
+      }
       setStatus("running");
     }
   };
@@ -146,10 +158,15 @@ export function useGameSession(playerName: string) {
   const finishGame = (payload: { score: number; floors: number }) => {
     setStatus("gameOver");
     setLastScore(payload.score);
+    wink.gameplayStop();
+    if (wink.can("submitScore")) {
+      void wink.submitFinalScore({ score: payload.score }).catch(() => {});
+    }
+    void wink.refreshLeaderboard().catch(() => {});
     
     setHud((current) => {
       const newBest = Math.max(current.best, payload.score);
-      localStorage.setItem('bestScore', newBest.toString());
+      try { localStorage.setItem('bestScore', newBest.toString()); } catch {}
       return { ...current, score: payload.score, floors: payload.floors, best: newBest };
     });
   };
@@ -189,5 +206,6 @@ export function useGameSession(playerName: string) {
     applyX2Score,
     pushPlacement,
     hostPaused,
+    wink,
   };
 }
