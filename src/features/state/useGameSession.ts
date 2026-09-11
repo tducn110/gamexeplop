@@ -12,13 +12,6 @@ export interface SessionHudState {
   best: number;
 }
 
-export interface FloatingCallout {
-  id: number;
-  message: string;
-  tone: "perfect" | "good" | "base";
-  combo: number;
-}
-
 export function useGameSession(playerName: string) {
   const wink = useWinkIntegration();
   const [status, setStatus] = useState<GameStatus>("paused");
@@ -32,7 +25,6 @@ export function useGameSession(playerName: string) {
     best: parseInt(localStorage.getItem('bestScore') || '0', 10),
   });
   const [lastScore, setLastScore] = useState(0);
-  const [callout, setCallout] = useState<FloatingCallout | null>(null);
   const [revivesUsed, setRevivesUsed] = useState(0);
   const [hostPaused, setHostPaused] = useState(false);
   const countdownTimerRef = useRef<number | null>(null);
@@ -70,7 +62,6 @@ export function useGameSession(playerName: string) {
 
   const restartGame = () => {
     setStatus("paused");
-    setCallout(null);
     startGame();
   };
 
@@ -171,15 +162,6 @@ export function useGameSession(playerName: string) {
     });
   };
 
-  const pushPlacement = (payload: { message: string; tone: "perfect" | "good" | "base"; combo: number }) => {
-    setCallout({
-      id: Date.now(),
-      message: payload.message,
-      tone: payload.tone,
-      combo: payload.combo,
-    });
-  };
-
   useEffect(() => {
     return () => {
       if (countdownTimerRef.current) window.clearInterval(countdownTimerRef.current);
@@ -193,7 +175,6 @@ export function useGameSession(playerName: string) {
     countdown,
     hud,
     lastScore,
-    callout,
     sessionKey,
     startGame,
     restartGame,
@@ -204,7 +185,6 @@ export function useGameSession(playerName: string) {
     skipRevive,
     confirmRevive,
     applyX2Score,
-    pushPlacement,
     hostPaused,
     wink,
   };

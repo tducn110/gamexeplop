@@ -2,7 +2,6 @@ import { useEffect, useRef } from "react";
 import { useGameStore } from "@/features/state/useGameStore";
 import { useGameSession } from "@/features/state/useGameSession";
 import { CountdownOverlay } from "./CountdownOverlay";
-import { FloatingTextLayer } from "./FloatingTextLayer";
 import { GameOverScreen } from "@/screens/GameOverScreen";
 import { ReviveScreen } from "@/screens/ReviveScreen";
 
@@ -37,7 +36,6 @@ export function GameUI({ session, store, gameControllerRef }: GameUIProps) {
       />
 
       <CountdownOverlay countdown={session.countdown} />
-      <FloatingTextLayer callout={session.callout} />
 
       <ReviveScreen
         floors={session.hud.floors}

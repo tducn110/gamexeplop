@@ -22,7 +22,6 @@ interface PixiGameStageProps {
   status: GameStatus;
   onScoreChange: (payload: { score: number; floors: number; combo: number }) => void;
   onGameOver: (payload: { score: number; floors: number }) => void;
-  onPlacement: (payload: { message: string; tone: "perfect" | "good" | "base"; combo: number }) => void;
   onResumeGame?: () => void;
   hostPaused: boolean;
   showStartPrompt: boolean;
@@ -40,7 +39,7 @@ function drawBackgroundOverlay(g: Graphics, width: number, height: number, score
 }
 
 export function PixiGameStage({
- sessionKey, status, onScoreChange, onGameOver, onPlacement, onResumeGame, hostPaused, showStartPrompt, gameControllerRef, reducedMotion }: PixiGameStageProps) {
+ sessionKey, status, onScoreChange, onGameOver, onResumeGame, hostPaused, showStartPrompt, gameControllerRef, reducedMotion }: PixiGameStageProps) {
   const { wrapRef, appRef, layersRef, sizeRef, ready, viewport } = usePixiApp();
   const { t } = useTranslation();
   const gameRef = useRef<GameState | null>(null);
@@ -254,11 +253,6 @@ export function PixiGameStage({
           playLandSfx(game.lastPlacement.combo);
         }
 
-        onPlacement({
-          message: game.lastPlacement.kind === "perfect" ? t("PERFECT") : game.lastPlacement.kind === "good" ? t("GOOD") : t("ONE_FLOOR"),
-          tone: game.lastPlacement.kind,
-          combo: game.lastPlacement.combo,
-        });
       }
     };
 
@@ -266,7 +260,7 @@ export function PixiGameStage({
     return () => {
       ticker.remove(tick);
     };
-  }, [ready, texturesReady, appRef, layersRef, onGameOver, onPlacement, onScoreChange, sessionKey, sizeRef, status, hostPaused, reducedMotion]);
+  }, [ready, texturesReady, appRef, layersRef, onGameOver, onScoreChange, sessionKey, sizeRef, status, hostPaused, reducedMotion]);
 
   useEffect(() => {
     return () => {

@@ -63,7 +63,6 @@ export function RootRoute() {
             status={session.status}
             onScoreChange={session.commitHud}
             onGameOver={session.handleGameOverEvent}
-            onPlacement={session.pushPlacement}
             onResumeGame={handleResumeGame}
             hostPaused={session.hostPaused}
             showStartPrompt={!session.hasStarted}
