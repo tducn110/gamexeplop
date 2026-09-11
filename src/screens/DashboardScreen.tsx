@@ -78,9 +78,11 @@ export function DashboardScreen({ open, best, lastScore, leaderboard, playerName
                   <div className="dashboardRankName">
                     <span>{entry.playerName}</span>
                   </div>
-                  <div className="dashboardRankTime">
-                    <Layers size={12} /> {entry.floors} {t("FLOORS").toLowerCase()}
-                  </div>
+                  {entry.floors !== null && (
+                    <div className="dashboardRankTime">
+                      <Layers size={12} /> {entry.floors} {t("FLOORS").toLowerCase()}
+                    </div>
+                  )}
                   <div className="dashboardRankScore">
                     {entry.score.toLocaleString(i18n.language === 'vi' ? "vi-VN" : "en-US")}
                   </div>
@@ -116,9 +118,9 @@ export function DashboardScreen({ open, best, lastScore, leaderboard, playerName
                 <div className="dashboardRankName">
                   <span>{t("YOU")}</span>
                 </div>
-                {playerRow.score > 0 && (
+                {playerRow.score > 0 && playerRow.floors !== null && (
                   <div className="dashboardRankTime">
-                    <Layers size={12} /> {playerRow.floors || 0} {t("FLOORS").toLowerCase()}
+                    <Layers size={12} /> {playerRow.floors} {t("FLOORS").toLowerCase()}
                   </div>
                 )}
                 <div className="dashboardRankScore">

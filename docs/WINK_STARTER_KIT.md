@@ -1,81 +1,46 @@
-# Wink starter kit
+# Wink SDK v1 integration
 
-Everything in this directory is copied **into a game repository**. It is
-self-contained: nothing here needs a Wink checkout at build time.
+This game uses the canonical Wink SDK contract. The game owns gameplay and UI;
+the SDK owns the iframe session, capabilities, leaderboard, and host lifecycle.
 
-The normal way to install it is the scaffolder, run once from the Wink
-repository:
+## Required entrypoint
 
-```bash
-node game-template/init-game.mjs \
-  --repo /path/to/my-game \
-  --id <GAME_UUID> \
-  --slug <game-slug> \
-  --title "Game title"
+`index.html` must load the SDK before the deferred application module:
+
+```html
+<script src="https://sdk.winkgames.fun/v1/wink.js"></script>
+<script type="module" src="/src/main.tsx"></script>
 ```
 
-That copies these files, substitutes the game identity, generates
-`public/wink-runtime-config.json`, writes `public/wink-bridge.lock.json`, and
-merges the npm scripts from `package.scripts.json`.
+The integration module is
+`src/integrations/wink/useWinkIntegration.ts`. It calls `window.Wink.init()`
+once, subscribes to pause/resume, mute/unmute, and locale, and exposes the
+remote leaderboard and personal best to the Dashboard. Direct standalone
+launch remains playable without faking a Wink session.
 
-## What lands in the game repository
+## Gameplay contract
 
-| Path | Purpose |
-| --- | --- |
-| `public/wink-bridge.js` | Certified bridge artifact, byte-for-byte |
-| `public/wink-bridge.lock.json` | Version/protocol/bytes/checksum lock |
-| `public/wink-runtime-config.json` | Generated public config (5 fields) |
-| `scripts/wink-contract.mjs` | Single source of truth for every pin |
-| `scripts/generate-wink-runtime-config.mjs` | Strict public config generator |
-| `scripts/sync-wink-bridge.mjs` | (Re)writes the bridge lock |
-| `scripts/verify-wink-bridge.mjs` | Fail-closed bridge + config + entry check |
-| `scripts/verify-game-config.mjs` | Cross-checks `game.config.sh` against the contract |
-| `scripts/verify-docker-headers.mjs` | Runs real Nginx and asserts headers |
-| `src/integrations/wink/wink-bridge.ts` | TypeScript facade for the SDK |
-| `src/integrations/wink/client.ts` | The game's only Wink adapter |
-| `src/integrations/wink/__tests__/client.test.ts` | Adapter contract tests |
-| `etc/default.conf.template` | Nginx with exact `frame-ancestors` |
-| `Dockerfile` | Multi-stage build from source → Nginx |
-| `.dockerignore` | Keeps source, secrets, and evidence out of the image |
-| `game.config.sh` | The only per-game deployment inputs |
-| `deploy.sh` | Gated check / build-push / deploy / rollback |
-| `wink-integration.json` | Handoff manifest for `verify-handoff.mjs` |
-| `artifacts/minigame-pilot/` | Local, git-ignored deploy metadata |
+- Call `gameplayStart()` when the player first controls a round.
+- Call `gameplayStop()` once at the semantic end of the round.
+- Check `can("submitScore")` before submitting the final non-negative integer
+  score.
+- Check `can("getLeaderboard")` before reading the remote leaderboard.
+- Keep score submission independent from round completion.
+- Treat locale values as `vi` or `en`; unknown values fall back to `en`.
+- Do not add custom tracking, direct Wink HTTP calls, tokens, game IDs, API
+  URLs, custom `postMessage`, or a copied bridge/runtime config.
 
-## After scaffolding
+## Repository contract
 
-1. Load the bridge before game code in the HTML entry:
+`wink.game.json` declares schema v1, runtime `wink-sdk`, protocol 1, SDK major
+1, profile `vite-static-v1`, and static output `dist`. The repository uses one
+root lockfile and the standard commands are:
 
-   ```html
-   <script src="/wink-bridge.js"></script>
-   <script type="module" src="/src/main.tsx"></script>
-   ```
+```bash
+npm run typecheck
+npm test
+npm run build
+```
 
-   `verify-wink-bridge.mjs` only requires that no other `src=` or
-   `type="module"` script precedes it, so any bundler layout works.
-
-2. Wire the game into `src/integrations/wink/client.ts` at the five semantic
-   boundaries, then replace every `"TODO"` in `wink-integration.json` with a
-   real description. The verifier rejects `"TODO"` (under 16 characters), so
-   `WINK_HANDOFF_OK` is unreachable until the semantics are documented.
-
-3. Run the gates:
-
-   ```bash
-   npm run verify:wink-bridge
-   npm test
-   npm run typecheck
-   npm run build
-   ```
-
-4. Follow `game-template/docs/GAME_DEV_HANDOFF.md` for harness testing and the
-   13-row behavioural matrix.
-
-## Editing rules
-
-- `public/wink-bridge.js` is certified — never hand-edit or re-minify it.
-- `public/wink-runtime-config.json` is generated — never hand-edit it.
-- `game.config.sh` has one editable block at the top; everything below it is
-  derived and re-validated by `verify-game-config.mjs`.
-- `scripts/wink-contract.mjs` is identical in every game. Changing it here
-  desynchronises this game from the platform.
+The build must produce `dist/index.html`. Developers merge source into
+`develop`; deployment and production promotion remain platform-owner work.

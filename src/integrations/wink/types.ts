@@ -34,6 +34,9 @@ export interface WinkIntegrationError {
 }
 
 export interface WinkLeaderboardEntry {
+  id?: string;
+  userId?: string | null;
+  isAnonymous?: boolean;
   rank: number;
   score: number;
   playTime: number | null;
@@ -101,6 +104,8 @@ export interface WinkIntegration {
   hostPaused: boolean;
   parentMuted: boolean;
   locale: string;
+  displayName: string | null;
+  bestScore: number;
   error: WinkIntegrationError | null;
   leaderboard: readonly WinkLeaderboardEntry[];
   personalBest: WinkLeaderboardEntry | null;

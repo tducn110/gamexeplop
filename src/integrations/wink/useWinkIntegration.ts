@@ -269,6 +269,9 @@ export function useWinkIntegration(): WinkIntegration {
     [gameplayStop],
   );
 
+  const displayName = sdk?.player?.displayName ?? null;
+  const bestScore = personalBest?.score ?? 0;
+
   return {
     status,
     isReady,
@@ -277,6 +280,8 @@ export function useWinkIntegration(): WinkIntegration {
     hostPaused,
     parentMuted,
     locale,
+    displayName,
+    bestScore,
     error,
     leaderboard,
     personalBest,
