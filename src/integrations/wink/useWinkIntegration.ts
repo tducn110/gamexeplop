@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import i18n from "../../i18n";
 import type {
   WinkCapability,
   WinkIntegration,
@@ -112,8 +111,6 @@ export function useWinkIntegration(): WinkIntegration {
         setParentMuted(resolvedSdk.muted);
         if (resolvedSdk.locale) {
           setLocale(resolvedSdk.locale);
-          const lang = resolvedSdk.locale === "vi" ? "vi" : "en";
-          void i18n.changeLanguage(lang);
         }
 
         try {
@@ -140,8 +137,6 @@ export function useWinkIntegration(): WinkIntegration {
           cleanups.push(
             resolvedSdk.on("locale", (nextLocale: string) => {
               setLocale(nextLocale);
-              const lang = nextLocale === "vi" ? "vi" : "en";
-              void i18n.changeLanguage(lang);
             }),
           );
         } catch (e) {
