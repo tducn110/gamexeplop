@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import i18n from "../../i18n";
 import type {
   WinkCapability,
   WinkIntegration,
@@ -34,6 +35,11 @@ function safeError(
     message: SAFE_ERROR_MESSAGES[code] || "Lỗi kết nối Wink.",
     retryable,
   });
+}
+
+function normalizeLocale(value?: string): "vi" | "en" {
+  const locale = value?.split("-")[0];
+  return locale === "vi" || locale === "en" ? locale : "en";
 }
 
 // Global bootstrap promise so multiple hook instances share the same initialization
@@ -91,7 +97,7 @@ export function useWinkIntegration(): WinkIntegration {
   const [isReady, setIsReady] = useState(false);
   const [hostPaused, setHostPaused] = useState(false);
   const [parentMuted, setParentMuted] = useState(sdk?.muted ?? false);
-  const [locale, setLocale] = useState(sdk?.locale ?? "vi");
+  const [locale, setLocale] = useState(normalizeLocale(sdk?.locale));
   const [error, setError] = useState<WinkIntegrationError | null>(null);
   const [personalBest, setPersonalBest] = useState<WinkLeaderboardEntry | null>(null);
   const [leaderboard, setLeaderboard] = useState<readonly WinkLeaderboardEntry[]>([]);
@@ -109,9 +115,9 @@ export function useWinkIntegration(): WinkIntegration {
         setSdk(resolvedSdk);
         setStatus(resolvedSdk.status);
         setParentMuted(resolvedSdk.muted);
-        if (resolvedSdk.locale) {
-          setLocale(resolvedSdk.locale);
-        }
+        const initialLocale = normalizeLocale(resolvedSdk.locale);
+        setLocale(initialLocale);
+        void i18n.changeLanguage(initialLocale);
 
         try {
           cleanups.push(
@@ -136,7 +142,9 @@ export function useWinkIntegration(): WinkIntegration {
           );
           cleanups.push(
             resolvedSdk.on("locale", (nextLocale: string) => {
-              setLocale(nextLocale);
+              const normalizedLocale = normalizeLocale(nextLocale);
+              setLocale(normalizedLocale);
+              void i18n.changeLanguage(normalizedLocale);
             }),
           );
         } catch (e) {
@@ -209,7 +217,7 @@ export function useWinkIntegration(): WinkIntegration {
 
   const refreshPersonalBest = useCallback(async () => {
     const currentSdk = sdkRef.current;
-    if (!currentSdk || !currentSdk.can("submitScore")) {
+    if (!currentSdk) {
       setPersonalBest(null);
       return;
     }
@@ -261,18 +269,6 @@ export function useWinkIntegration(): WinkIntegration {
     [gameplayStop],
   );
 
-  const track = useCallback(
-    (eventName: string, properties?: Record<string, unknown>) => {
-      const currentSdk = sdkRef.current;
-      if (currentSdk && currentSdk.can("track")) {
-        currentSdk.track(eventName, properties).catch((err) => {
-          console.warn("[WinkIntegration] track error", err);
-        });
-      }
-    },
-    [],
-  );
-
   return {
     status,
     isReady,
@@ -291,6 +287,5 @@ export function useWinkIntegration(): WinkIntegration {
     refreshPersonalBest,
     submitFinalScore,
     completeRound,
-    track,
   };
 }
