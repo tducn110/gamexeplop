@@ -1,4 +1,4 @@
-import { Container, Graphics, Sprite, Text, Texture, type Container as PixiContainer } from "pixi.js";
+import { Container, Graphics, Sprite, Texture, type Container as PixiContainer } from "pixi.js";
 import { getMovingBlockY } from "../../core/core";
 import type { GameState } from "../../core/types";
 import { BLOCK_HEIGHT } from "../../core/constants";
@@ -10,6 +10,10 @@ type BlockView = Container & {
   clip: Graphics;
   sprite: Sprite;
   art: Graphics;
+  cachedWidth?: number;
+  cachedRefWidth?: number;
+  cachedIndex?: number;
+  cachedActive?: boolean;
 };
 
 export interface SpriteRegistry {
@@ -17,7 +21,6 @@ export interface SpriteRegistry {
   pieces: Map<string, BlockView>;
   moving: BlockView | null;
   dropping: BlockView | null;
-  comboText: Text | null;
   perfectHighlight: Graphics | null;
 
 }
@@ -124,6 +127,13 @@ function drawBlockArt(
   }
 }
 
+function safeDestroyBlockView(view: BlockView) {
+  if (view.sprite) {
+    view.sprite.mask = null;
+  }
+  view.destroy({ children: true });
+}
+
 function applyBlockView(
   view: BlockView,
   x: number,
@@ -133,9 +143,24 @@ function applyBlockView(
   textures: GameTextures,
   options: { active?: boolean; alpha?: number; rotation?: number; falling?: boolean; index?: number } = {}
 ) {
-  drawBlockArt(view, width, referenceWidth, textures, options);
+  // ponytail: Only redraw geometry/crops when dimensions or appearance change (RC-01)
+  const isDirty =
+    view.cachedWidth !== width ||
+    view.cachedRefWidth !== referenceWidth ||
+    view.cachedIndex !== options.index ||
+    view.cachedActive !== Boolean(options.active);
+
+  if (isDirty) {
+    drawBlockArt(view, width, referenceWidth, textures, options);
+    view.cachedWidth = width;
+    view.cachedRefWidth = referenceWidth;
+    view.cachedIndex = options.index;
+    view.cachedActive = Boolean(options.active);
+  }
+
   view.alpha = options.alpha ?? 1;
   view.visible = true;
+  view.sprite.visible = width > 0;
 
   if (options.falling) {
     view.pivot.set(width / 2, BLOCK_HEIGHT / 2);
@@ -145,6 +170,7 @@ function applyBlockView(
     view.pivot.set(0, 0);
     view.position.set(x, y);
     view.rotation = 0;
+    view.scale.set(1, 1);
   }
 }
 
@@ -154,9 +180,7 @@ export function createSpriteRegistry(): SpriteRegistry {
     pieces: new Map(),
     moving: null,
     dropping: null,
-    comboText: null,
     perfectHighlight: null,
-
   };
 }
 
@@ -180,7 +204,7 @@ export function syncWorldSprites(
 
   for (const [key, view] of registry.blocks.entries()) {
     if (!activeBlockIds.has(key)) {
-      view.destroy({ children: true });
+      safeDestroyBlockView(view);
       registry.blocks.delete(key);
     }
   }
@@ -217,32 +241,9 @@ export function syncWorldSprites(
 
   for (const [key, view] of registry.pieces.entries()) {
     if (!activePieceIds.has(key)) {
-      view.destroy({ children: true });
+      safeDestroyBlockView(view);
       registry.pieces.delete(key);
     }
-  }
-
-  if (state.combo > 1) {
-    if (!registry.comboText) {
-      registry.comboText = new Text({
-        text: `Combo x${state.combo}`,
-        style: {
-          fontFamily: "var(--font-family, system-ui)",
-          fontSize: 24,
-          fontWeight: "900",
-          fill: "#fff8d4",
-          stroke: { color: "#5f3b1f", width: 3 },
-        },
-      });
-      registry.comboText.anchor.set(0.5);
-      layer.addChild(registry.comboText);
-    }
-    registry.comboText.text = `Combo x${state.combo}`;
-    registry.comboText.x = appWidth / 2;
-    registry.comboText.y = 104;
-    registry.comboText.visible = true;
-  } else if (registry.comboText) {
-    registry.comboText.visible = false;
   }
 
   if (state.perfectHighlight) {
@@ -267,15 +268,21 @@ export function syncWorldSprites(
   } else if (registry.perfectHighlight) {
     registry.perfectHighlight.visible = false;
   }
-
 }
 
 export function destroySpriteRegistry(registry: SpriteRegistry) {
-  for (const view of registry.blocks.values()) view.destroy({ children: true });
-  for (const view of registry.pieces.values()) view.destroy({ children: true });
-  registry.moving?.destroy({ children: true });
-  registry.dropping?.destroy({ children: true });
-  registry.comboText?.destroy();
+  for (const view of registry.blocks.values()) safeDestroyBlockView(view);
+  registry.blocks.clear();
+  for (const view of registry.pieces.values()) safeDestroyBlockView(view);
+  registry.pieces.clear();
+  if (registry.moving) {
+    safeDestroyBlockView(registry.moving);
+    registry.moving = null;
+  }
+  if (registry.dropping) {
+    safeDestroyBlockView(registry.dropping);
+    registry.dropping = null;
+  }
   registry.perfectHighlight?.destroy();
-
+  registry.perfectHighlight = null;
 }

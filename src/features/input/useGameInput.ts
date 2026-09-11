@@ -1,21 +1,23 @@
 import { useEffect, useRef } from "react";
 import type { Application } from "pixi.js";
-import { normalizePointer } from "./normalizePointer";
 
 interface UseGameInputOptions {
   app: Application | null;
   enabled: boolean;
   onAction: (intent: { kind: "drag-up" | "tap"; distance: number }) => void;
+  onPointerDown?: (event: PointerEvent) => void;
 }
 
-export function useGameInput({ app, enabled, onAction }: UseGameInputOptions) {
+export function useGameInput({ app, enabled, onAction, onPointerDown }: UseGameInputOptions) {
   const latestEnabledRef = useRef(enabled);
   const latestOnActionRef = useRef(onAction);
+  const latestOnPointerDownRef = useRef(onPointerDown);
 
   useEffect(() => {
     latestEnabledRef.current = enabled;
     latestOnActionRef.current = onAction;
-  }, [enabled, onAction]);
+    latestOnPointerDownRef.current = onPointerDown;
+  }, [enabled, onAction, onPointerDown]);
 
   useEffect(() => {
     if (!app) return;
@@ -28,17 +30,17 @@ export function useGameInput({ app, enabled, onAction }: UseGameInputOptions) {
 
     const handlePointerDown = (event: PointerEvent) => {
       if (!latestEnabledRef.current) return;
-      const pointer = normalizePointer(event, canvas.getBoundingClientRect());
+      latestOnPointerDownRef.current?.(event);
+      const rect = canvas.getBoundingClientRect();
       activePointerId = event.pointerId;
-      startY = pointer.y;
-      lastY = pointer.y;
+      startY = event.clientY - rect.top;
+      lastY = startY;
       canvas.setPointerCapture?.(event.pointerId);
     };
 
     const handlePointerMove = (event: PointerEvent) => {
       if (activePointerId !== event.pointerId) return;
-      const pointer = normalizePointer(event, canvas.getBoundingClientRect());
-      lastY = pointer.y;
+      lastY = event.clientY - canvas.getBoundingClientRect().top;
     };
 
     const finishPointer = (event: PointerEvent) => {
@@ -47,9 +49,7 @@ export function useGameInput({ app, enabled, onAction }: UseGameInputOptions) {
         activePointerId = null;
         return;
       }
-
-      const pointer = normalizePointer(event, canvas.getBoundingClientRect());
-      lastY = pointer.y;
+      lastY = event.clientY - canvas.getBoundingClientRect().top;
       const upwardDistance = Math.max(0, startY - lastY);
       latestOnActionRef.current({
         kind: upwardDistance >= 18 ? "drag-up" : "tap",

@@ -2,6 +2,7 @@ import { createRoot } from "react-dom/client";
 import App from "./app/App.tsx";
 import { ErrorBoundary } from "./components/shared/ErrorBoundary.tsx";
 import { logger } from "./utils/logger.ts";
+import "./i18n";
 import "./styles/index.css";
 
 // Catch global unhandled exceptions for logs

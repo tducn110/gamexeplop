@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface FloatingTextLayerProps {
   callout: {
@@ -11,6 +12,7 @@ interface FloatingTextLayerProps {
 
 export function FloatingTextLayer({ callout }: FloatingTextLayerProps) {
   const [visible, setVisible] = useState(callout);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (!callout) return;
@@ -27,10 +29,11 @@ export function FloatingTextLayer({ callout }: FloatingTextLayerProps) {
         position: 'absolute', top: '50%', left: '50%', 
         transform: 'translate(-50%, -50%)',
         color: visible.tone === 'perfect' ? '#ff9800' : visible.tone === 'good' ? '#8bc34a' : '#ffffff',
-        textShadow: "0 2px 8px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.6)"
+        textShadow: "0 2px 8px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.6)",
+        animation: visible.combo >= 2 ? "pointPop 1.0s ease-out" : "pointPop 0.85s ease-out"
       }}>
         {visible.message}
-        {visible.combo >= 2 ? ` - Combo x${visible.combo}` : ""}
+        {visible.combo >= 2 ? ` - ${t("COMBO_X", { count: visible.combo })}` : ""}
       </div>
     </div>
   );

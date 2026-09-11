@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Assets, Graphics, Sprite, type Texture } from "pixi.js";
+import { useTranslation } from "react-i18next";
+import { Graphics } from "pixi.js";
 import { createGame, getGameResult, startDrop, updateGame, reviveGame } from "../../core/core";
 import type { GameState, GameStatus } from "../../core/types";
 import { useGameInput } from "../../input/useGameInput";
@@ -8,39 +9,24 @@ import { syncFloatingTexts } from "../effects/floatingText";
 import { destroyFeedbackAnimations, runPlacementAnimation } from "../animations/feedbackAnimations";
 import { createSpriteRegistry, destroySpriteRegistry, syncWorldSprites } from "./sprites";
 import { createGameTextures, destroyGameTextures, type GameTextures } from "./textures";
-import { applyCameraTransform } from "./camera";
+import { applyCameraTransform, triggerPlacementCameraShake, resetCameraShake } from "./camera";
 import { usePixiApp } from "./usePixiApp";
-import type { LeaderboardEntry } from "../../db/schema";
 import { getFloors } from "../../logic/rules";
-import { audioManager } from "../../../utils/audio-manager";
+import { playDropSfx, playLandSfx, playLoseSfx, playMatchSfx } from "../../../utils/combo-sound";
 import { MobileDebugOverlay } from "@/platform/diagnostics/MobileDebugOverlay";
+import { createPortraitBackground, destroyPortraitBackground, syncPortraitBackground, type PortraitBackground } from "./portraitBackground";
 
-const BACKGROUND_ASSET = "/assets/Background.png";
 
 interface PixiGameStageProps {
   sessionKey: number;
   status: GameStatus;
   onScoreChange: (payload: { score: number; floors: number; combo: number }) => void;
   onGameOver: (payload: { score: number; floors: number }) => void;
-  onPlacement: (payload: { message: string; tone: "perfect" | "good" | "base"; combo: number }) => void;
   onResumeGame?: () => void;
+  hostPaused: boolean;
+  showStartPrompt: boolean;
   gameControllerRef?: React.MutableRefObject<{ revive: () => void } | null>;
-}
-
-function fitBackgroundSprite(sprite: Sprite, width: number, height: number) {
-  const textureWidth = Math.max(1, sprite.texture.width);
-  const textureHeight = Math.max(1, sprite.texture.height);
-  const maxTravel = height * 0.42;
-  const scale = Math.max(width / textureWidth, (height + maxTravel) / textureHeight);
-
-  sprite.anchor.set(0.5);
-  sprite.scale.set(scale);
-}
-
-function positionBackgroundSprite(sprite: Sprite, width: number, height: number, scroll: number) {
-  const maxTravel = height * 0.42;
-  const travel = Math.min(maxTravel, scroll * 0.92);
-  sprite.position.set(width / 2, height / 2 + travel);
+  reducedMotion: boolean;
 }
 
 function drawBackgroundOverlay(g: Graphics, width: number, height: number, score: number, crashT: number) {
@@ -52,18 +38,20 @@ function drawBackgroundOverlay(g: Graphics, width: number, height: number, score
   }
 }
 
-export function PixiGameStage({ sessionKey, status, onScoreChange, onGameOver, onPlacement, onResumeGame, gameControllerRef }: PixiGameStageProps) {
+export function PixiGameStage({
+ sessionKey, status, onScoreChange, onGameOver, onResumeGame, hostPaused, showStartPrompt, gameControllerRef, reducedMotion }: PixiGameStageProps) {
   const { wrapRef, appRef, layersRef, sizeRef, ready, viewport } = usePixiApp();
+  const { t } = useTranslation();
   const gameRef = useRef<GameState | null>(null);
   const texturesRef = useRef<GameTextures | null>(null);
   const registryRef = useRef(createSpriteRegistry());
   const textMapRef = useRef(new Map());
   const finishedKeyRef = useRef<number | null>(null);
   const lastPlacementTokenRef = useRef<number | null>(null);
-  const bgSpriteRef = useRef<Sprite | null>(null);
   const bgGraphicsRef = useRef<Graphics | null>(null);
-  const worldMaskRef = useRef<Graphics | null>(null);
-  const effectsMaskRef = useRef<Graphics | null>(null);
+  const portraitBackgroundRef = useRef<PortraitBackground | null>(null);
+  const resumeRequestedRef = useRef(false);
+  const lastScoreSnapshotRef = useRef({ score: -1, floors: -1, combo: -1 });
   const [texturesReady, setTexturesReady] = useState(false);
 
   useEffect(() => {
@@ -95,33 +83,30 @@ export function PixiGameStage({ sessionKey, status, onScoreChange, onGameOver, o
   useEffect(() => {
     if (!ready || !appRef.current || !layersRef.current) return;
     let cancelled = false;
-    const { background: layer, root, world, effects } = layersRef.current;
+    const { background: layer } = layersRef.current;
     const overlay = new Graphics();
-    const worldMask = new Graphics();
-    const effectsMask = new Graphics();
     layer.addChild(overlay);
-    root.addChild(worldMask, effectsMask);
-    world.mask = worldMask;
-    effects.mask = effectsMask;
     bgGraphicsRef.current = overlay;
-    worldMaskRef.current = worldMask;
-    effectsMaskRef.current = effectsMask;
 
-    // Removed background sprite loading to use CSS pastel kawaii sky
-    // Note: textures are still loaded by createGameTextures
+    let backgroundCancelled = false;
+    createPortraitBackground().then((background) => {
+      if (backgroundCancelled) {
+        destroyPortraitBackground(background);
+        return;
+      }
+      portraitBackgroundRef.current = background;
+      layer.addChildAt(background.container, 0);
+    }).catch((error) => console.error("Failed to load portrait background", error));
 
     return () => {
       cancelled = true;
-      world.mask = null;
-      effects.mask = null;
-      bgSpriteRef.current?.destroy();
-      bgSpriteRef.current = null;
+      backgroundCancelled = true;
+      if (portraitBackgroundRef.current) {
+        destroyPortraitBackground(portraitBackgroundRef.current);
+        portraitBackgroundRef.current = null;
+      }
       overlay.destroy();
       bgGraphicsRef.current = null;
-      worldMask.destroy();
-      effectsMask.destroy();
-      worldMaskRef.current = null;
-      effectsMaskRef.current = null;
     };
   }, [ready, appRef, layersRef, sizeRef]);
 
@@ -130,7 +115,20 @@ export function PixiGameStage({ sessionKey, status, onScoreChange, onGameOver, o
     gameRef.current = createGame(sizeRef.current.width);
     finishedKeyRef.current = null;
     lastPlacementTokenRef.current = null;
+    lastScoreSnapshotRef.current = { score: -1, floors: -1, combo: -1 };
+    resetCameraShake();
+    if (layersRef.current) {
+      destroyFeedbackAnimations(layersRef.current.world);
+      layersRef.current.world.position.set(0, 0);
+      layersRef.current.root.position.set(0, 0);
+    }
+    destroySpriteRegistry(registryRef.current);
+    registryRef.current = createSpriteRegistry();
   }, [sessionKey, sizeRef]);
+
+  useEffect(() => {
+    if (status !== "paused") resumeRequestedRef.current = false;
+  }, [status]);
 
   useEffect(() => {
     if (gameControllerRef) {
@@ -147,16 +145,29 @@ export function PixiGameStage({ sessionKey, status, onScoreChange, onGameOver, o
 
   useGameInput({
     app: appRef.current,
-    enabled: status === "running" || status === "paused",
-    onAction: (intent) => {
+    enabled: texturesReady && !hostPaused && (status === "running" || status === "paused"),
+    onPointerDown: () => {
+      if (hostPaused) return;
       if (status === "paused") {
+        if (!onResumeGame || resumeRequestedRef.current) return;
+        resumeRequestedRef.current = true;
+        onResumeGame?.();
+      }
+    },
+    onAction: (intent) => {
+      if (hostPaused) return;
+      if (status === "paused") {
+        if (!onResumeGame || resumeRequestedRef.current) return;
+        resumeRequestedRef.current = true;
         onResumeGame?.();
       } else {
         if (!gameRef.current) return;
         const res = startDrop(gameRef.current, sizeRef.current.height, sizeRef.current.width, intent.distance);
-        if (res.gameOver) {
-          audioManager.playSfx("bomb", 0.65);
+        if (res.status === "gameOver") {
+          playLoseSfx();
           onGameOver?.(getGameResult(gameRef.current));
+        } else if (res.status === "placed") {
+          playDropSfx();
         }
       }
     },
@@ -174,28 +185,22 @@ export function PixiGameStage({ sessionKey, status, onScoreChange, onGameOver, o
       const game = gameRef.current;
       if (!game) return;
 
-      if (status === "running" || status === "gameOver") {
+      if (!hostPaused && (status === "running" || status === "gameOver")) {
         const result = updateGame(game, ticker.deltaMS, sizeRef.current.width, sizeRef.current.height);
         
         if (status === "running") {
-          onScoreChange({
-            score: game.score,
-            floors: getFloors(game),
-            combo: game.combo,
-          });
-
-          if (game.lastPlacement && game.lastPlacement.token !== lastPlacementTokenRef.current) {
-            lastPlacementTokenRef.current = game.lastPlacement.token;
-            const topSprite = registry.blocks.get(`block-${game.blocks.length - 1}`) ?? null;
-            runPlacementAnimation(game.lastPlacement.kind, topSprite, layers.world, game.lastPlacement.combo);
-            
-            const pitch = 1.0 + Math.min(game.lastPlacement.combo, 8) * 0.08;
-            audioManager.playSfx("slice", 0.5, pitch);
-
-            onPlacement({
-              message: game.lastPlacement.kind === "perfect" ? "Đạt chuẩn!" : game.lastPlacement.kind === "good" ? "Rất gần!" : "Thêm 1 tầng",
-              tone: game.lastPlacement.kind,
-              combo: game.lastPlacement.combo,
+          // ponytail: Only invoke React onScoreChange when values genuinely change (RC-08)
+          const floors = getFloors(game);
+          if (
+            game.score !== lastScoreSnapshotRef.current.score ||
+            floors !== lastScoreSnapshotRef.current.floors ||
+            game.combo !== lastScoreSnapshotRef.current.combo
+          ) {
+            lastScoreSnapshotRef.current = { score: game.score, floors, combo: game.combo };
+            onScoreChange({
+              score: game.score,
+              floors,
+              combo: game.combo,
             });
           }
 
@@ -207,37 +212,59 @@ export function PixiGameStage({ sessionKey, status, onScoreChange, onGameOver, o
       }
 
       const { width, height } = sizeRef.current;
-      const parallaxElement = document.getElementById('parallax-wrapper');
-      if (parallaxElement) {
-        parallaxElement.style.transform = `translateY(${game.scroll * 0.6}px)`;
+      if (portraitBackgroundRef.current) {
+        syncPortraitBackground(
+          portraitBackgroundRef.current,
+          width,
+          height,
+          game.scroll,
+        );
       }
       if (bgGraphicsRef.current) {
         drawBackgroundOverlay(bgGraphicsRef.current, width, height, game.score, game.crashT);
       }
-      if (worldMaskRef.current) {
-        worldMaskRef.current.clear();
-        worldMaskRef.current.rect(0, 0, width, height).fill({ color: 0xffffff, alpha: 1 });
-      }
-      if (effectsMaskRef.current) {
-        effectsMaskRef.current.clear();
-        effectsMaskRef.current.rect(0, 0, width, height).fill({ color: 0xffffff, alpha: 1 });
-      }
       
-      applyCameraTransform(layers.root, game);
+      applyCameraTransform(layers.root, game, { enableShake: !reducedMotion });
 
+      // ponytail: Sync sprites BEFORE consuming placement event so newly created top block exists for animation (RC-03)
       syncWorldSprites(layers.world, game, texturesRef.current!, registry, sizeRef.current.height, sizeRef.current.width);
       syncSparkGraphics(layers.sparkGraphics, game);
       syncFloatingTexts(layers.effects, game, textMap);
+
+      if (!hostPaused && status === "running" && game.lastPlacement && game.lastPlacement.token !== lastPlacementTokenRef.current) {
+        lastPlacementTokenRef.current = game.lastPlacement.token;
+        const topSprite = registry.blocks.get(`block-${game.blocks.length - 1}`) ?? null;
+        runPlacementAnimation(game.lastPlacement.kind, topSprite, layers.world, game.lastPlacement.combo, reducedMotion);
+        
+        // Rung toàn màn hình đồng bộ lúc khối rơm đáp xuống và tháp đẩy lên
+        if (!reducedMotion) {
+          const intensity = game.lastPlacement.kind === "perfect"
+            ? 7 + Math.min(game.lastPlacement.combo, 8) * 1.2
+            : game.lastPlacement.kind === "good"
+            ? 4.5
+            : 2.8;
+          const duration = game.lastPlacement.kind === "perfect" ? 220 : 150;
+          triggerPlacementCameraShake(intensity, duration);
+        }
+
+        if (game.lastPlacement.kind === "perfect") {
+          playMatchSfx(game.lastPlacement.combo);
+        } else {
+          playLandSfx(game.lastPlacement.combo);
+        }
+
+      }
     };
 
     ticker.add(tick);
     return () => {
       ticker.remove(tick);
     };
-  }, [ready, texturesReady, appRef, layersRef, onGameOver, onPlacement, onScoreChange, sessionKey, sizeRef, status]);
+  }, [ready, texturesReady, appRef, layersRef, onGameOver, onScoreChange, sessionKey, sizeRef, status, hostPaused, reducedMotion]);
 
   useEffect(() => {
     return () => {
+      resetCameraShake();
       if (layersRef.current) {
         destroyFeedbackAnimations(layersRef.current.world);
         layersRef.current.root.position.set(0, 0);
@@ -246,7 +273,7 @@ export function PixiGameStage({ sessionKey, status, onScoreChange, onGameOver, o
     };
   }, [layersRef]);
 
-  const stageReady = viewport.ready && ready;
+  const stageReady = viewport.ready && ready && texturesReady;
 
   return (
     <>
@@ -257,6 +284,28 @@ export function PixiGameStage({ sessionKey, status, onScoreChange, onGameOver, o
         aria-label="Sân chơi kéo lên trời"
       >
         {!stageReady ? <div className="stage-loading">Đang tải sân chơi...</div> : null}
+        {stageReady && status === "paused" && showStartPrompt ? (
+          <button
+            type="button"
+            className="start-ready"
+            role="button"
+            aria-label={t("TAP_TO_START")}
+            onClick={(e) => {
+              e.preventDefault();
+              if (resumeRequestedRef.current) return;
+              resumeRequestedRef.current = true;
+              onResumeGame?.();
+            }}
+            onPointerDown={(e) => {
+              e.preventDefault();
+              if (resumeRequestedRef.current) return;
+              resumeRequestedRef.current = true;
+              onResumeGame?.();
+            }}
+          >
+            <span className="start-ready-pill">{t("TAP_TO_START")}</span>
+          </button>
+        ) : null}
       </div>
       <MobileDebugOverlay
         viewport={viewport.diagnostics}

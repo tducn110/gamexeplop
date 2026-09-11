@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useTranslation } from "react-i18next";
 interface Props {
   progress: number;
   onDone: () => void;
@@ -38,6 +39,7 @@ export function LoadingScreen({ progress, onDone, completeDelayMs = 1150, exitin
   const [complete, setComplete] = useState(false);
   const completedRef = useRef(false);
   const safeProgress = Math.max(0, Math.min(100, progress));
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (safeProgress < 100 || completedRef.current) return;
@@ -54,9 +56,7 @@ export function LoadingScreen({ progress, onDone, completeDelayMs = 1150, exitin
   ].filter(Boolean).join(" ");
 
   return (
-    <section className={classNames} aria-busy={!complete} aria-label="Đang tải mini-game">
-      <img className="screen-loading-bg" src="/assets/slashing-fruit-loading.svg" alt="" aria-hidden="true" />
-
+    <section className={classNames} aria-busy={!complete} aria-label={t("STAGE_LOADING")}>
       <div className="leaf-layer" aria-hidden="true">
         {ambientLeaves.map((leaf, index) => (
           <span key={index} className="ambient-leaf" style={{
@@ -79,7 +79,7 @@ export function LoadingScreen({ progress, onDone, completeDelayMs = 1150, exitin
       <div className="screen-loading-content">
         <div className="loading-progress-area">
           <div className="loading-progress-meta">
-            <span className="loading-status">{complete ? "Hoàn tất!" : "Đang chuẩn bị cánh đồng..."}</span>
+            <span className="loading-status">{complete ? t("LOADING_READY") : t("LOADING_PREPARING")}</span>
             <span className="loading-percent">{Math.round(safeProgress)}%</span>
           </div>
           <div className="loading-progress-shell" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(safeProgress)}>

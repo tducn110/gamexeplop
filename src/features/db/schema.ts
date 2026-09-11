@@ -10,5 +10,5 @@ export interface LeaderboardEntry {
   rank: number;
   playerName: string;
   score: number;
-  floors: number;
+  floors: number | null;
 }

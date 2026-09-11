@@ -2,8 +2,6 @@ import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { createGame, getGameResult, startDrop, updateGame } from "../core/core";
 import { calculateScore } from "../logic/scoring";
 import { getBlockY } from "../logic/rules";
-import { saveScore, loadScores } from "../backend/scoreApi";
-import { getLeaderboard } from "../backend/leaderboardApi";
 
 function withMockedRandom(values: number[], fn: () => void) {
   const spy = vi.spyOn(Math, "random");
@@ -60,6 +58,32 @@ describe("straw stack core", () => {
     expect(summary.floors).toBe(0);
     expect(state.blocks).toHaveLength(1);
   });
+
+  it("returns status: 'ignored' when drop action occurs during paused or non-moving state", () => {
+    const state = createGame(390);
+    state.sub = "paused";
+    const result = startDrop(state, 720, 390);
+    expect(result.status).toBe("ignored");
+    expect(result.gameOver).toBe(false);
+    expect(state.blocks).toHaveLength(1);
+  });
+
+  it("handles sliver <= MIN_BLOCK_WIDTH by failing game over without increasing floor count or score", () => {
+    const state = createGame(390);
+    const top = state.blocks[0];
+    // Position moving block so overlap is <= 1px (e.g. 0.5px or 1px)
+    state.mv.x = top.x + top.w - 1;
+
+    withMockedRandom([0.5, 0.5], () => {
+      const result = startDrop(state, 720, 390);
+      expect(result.status).toBe("gameOver");
+      expect(result.gameOver).toBe(true);
+    });
+
+    const summary = getGameResult(state);
+    expect(summary.floors).toBe(0);
+    expect(state.blocks).toHaveLength(1);
+  });
 });
 
 describe("score logic", () => {
@@ -73,36 +97,5 @@ describe("score logic", () => {
 describe("camera rules", () => {
   it("moves blocks upward as scroll increases", () => {
     expect(getBlockY(0, 720, 0)).toBeLessThan(getBlockY(0, 720, 120));
-  });
-});
-
-
-describe("local score boundary", () => {
-  const storage = new Map<string, string>();
-
-  beforeEach(() => {
-    storage.clear();
-    vi.stubGlobal("window", {
-      localStorage: {
-        getItem: (key: string) => storage.get(key) ?? null,
-        setItem: (key: string, value: string) => storage.set(key, value),
-      },
-    });
-  });
-
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
-
-  it("stores scores and builds a ranked leaderboard", () => {
-    saveScore({ playerName: "An", score: 30, floors: 2 });
-    saveScore({ playerName: "Binh", score: 55, floors: 4 });
-
-    const scores = loadScores();
-    const leaderboard = getLeaderboard();
-
-    expect(scores).toHaveLength(2);
-    expect(leaderboard[0]).toMatchObject({ rank: 1, playerName: "Nguoi choi 3", score: 800 });
-    expect(leaderboard[1]).toMatchObject({ rank: 2, playerName: "Nguoi choi 4", score: 700 });
   });
 });

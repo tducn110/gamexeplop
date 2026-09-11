@@ -1,14 +1,12 @@
 import { ChartColumnBig, RotateCcw, Settings } from "lucide-react";
 import { useEffect, useState } from "react";
 import { IconButton } from "../shared/primitives/IconButton";
-import { GameButton } from "../shared/primitives/GameButton";
-import { GAME_TEXT } from "@/features/core/gameText";
+import { useTranslation } from "react-i18next";
 
 interface GameHudProps {
   score: number;
   floors: number;
   combo: number;
-  showHints: boolean;
   onDashboard: () => void;
   onSettings: () => void;
   onRestart: () => void;
@@ -18,13 +16,15 @@ export function GameHud({
   score,
   floors,
   combo,
-  showHints,
   onDashboard,
   onSettings,
   onRestart,
 }: GameHudProps) {
   const [animKey, setAnimKey] = useState(0);
   const [animClass, setAnimClass] = useState("");
+  const [comboAnimKey, setComboAnimKey] = useState(0);
+  const [comboAnimClass, setComboAnimClass] = useState("");
+  const { t, i18n } = useTranslation();
 
   useEffect(() => {
     if (score > 0) {
@@ -39,32 +39,45 @@ export function GameHud({
     }
   }, [score, combo]);
 
+  useEffect(() => {
+    if (combo > 1) {
+      setComboAnimKey((prev) => prev + 1);
+      setComboAnimClass(combo >= 4 ? "combo-animate-pop combo-animate-pop-heavy" : "combo-animate-pop");
+      return;
+    }
+
+    setComboAnimClass("");
+  }, [combo]);
+
   return (
     <>
       <div className="gameHud">
         <div className="gameScoreCluster">
           <div key={animKey} className={`gameScore score-text ${animClass}`}>
-            {score.toLocaleString("vi-VN")}
+            {score.toLocaleString(i18n.language === 'vi' ? "vi-VN" : "en-US")}
           </div>
           <div className="gameScorePills">
-            <span className="gameScoreMeta kawaii-pill">Tầng: {floors}</span>
-            {combo > 1 && <span className="gameScoreMeta kawaii-pill combo-pill">Combo x{combo}</span>}
+            <span className="gameScoreMeta kawaii-pill">{t("FLOORS")}: {floors}</span>
+            {combo > 1 && (
+              <span key={comboAnimKey} className={`gameScoreMeta kawaii-pill combo-pill ${comboAnimClass}`}>
+                {t("COMBO_X", { count: combo })}
+              </span>
+            )}
           </div>
         </div>
-
       </div>
 
-      <div className="gameTopLeftActions">
-        <IconButton label="Bảng điểm" variant="solid" onClick={onDashboard}>
+      <div className="gameTopLeftActions" style={{ display: 'flex', gap: '8px' }}>
+        <IconButton label={t("LEADERBOARD")} variant="solid" onClick={onDashboard}>
           <ChartColumnBig size={22} strokeWidth={2.5} />
         </IconButton>
       </div>
 
-      <div className="gameTopRightActions">
-        <IconButton label="Cài đặt" variant="solid" onClick={onSettings}>
+      <div className="gameTopRightActions" style={{ display: 'flex', gap: '8px' }}>
+        <IconButton label={t("SETTINGS")} variant="solid" onClick={onSettings}>
           <Settings size={22} strokeWidth={2.5} />
         </IconButton>
-        <IconButton label="Chơi lại" variant="solid" onClick={onRestart}>
+        <IconButton label={t("RETRY")} variant="solid" onClick={onRestart}>
           <RotateCcw size={22} strokeWidth={2.5} />
         </IconButton>
       </div>

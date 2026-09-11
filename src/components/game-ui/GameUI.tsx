@@ -2,13 +2,14 @@ import { useEffect, useRef } from "react";
 import { useGameStore } from "@/features/state/useGameStore";
 import { useGameSession } from "@/features/state/useGameSession";
 import { CountdownOverlay } from "./CountdownOverlay";
-import { FloatingTextLayer } from "./FloatingTextLayer";
 import { GameOverScreen } from "@/screens/GameOverScreen";
 import { ReviveScreen } from "@/screens/ReviveScreen";
 
 import { DashboardScreen } from "@/screens/DashboardScreen";
 import { SettingsScreen } from "@/screens/SettingsScreen";
 import { GameHud } from "./GameHud";
+import type { WinkLeaderboardEntry } from "@/integrations/wink/types";
+import i18n from "@/i18n";
 
 interface GameUIProps {
   session: ReturnType<typeof useGameSession>;
@@ -20,10 +21,40 @@ export function GameUI({ session, store, gameControllerRef }: GameUIProps) {
   const randomizedGameOverKeyRef = useRef<number | null>(null);
 
   useEffect(() => {
+    if (!store.dashboardOpen || session.wink.status === "standalone") return;
+    void session.wink.refreshLeaderboard().catch(() => {});
+  }, [session.wink.refreshLeaderboard, session.wink.status, store.dashboardOpen]);
+
+  useEffect(() => {
     if (session.status !== "gameOver" || randomizedGameOverKeyRef.current === session.sessionKey) return;
     randomizedGameOverKeyRef.current = session.sessionKey;
     store.randomizeCharacter();
   }, [session.sessionKey, session.status, store]);
+
+  const remoteLeaderboard = session.wink.leaderboard.map(
+    (entry: WinkLeaderboardEntry) => ({
+      rank: entry.rank,
+      playerName:
+        entry.displayName ??
+        i18n.t("PLAYER"),
+      score: entry.score,
+      floors: null,
+    }),
+  );
+  const leaderboard =
+    session.wink.status === "standalone"
+      ? [{
+          rank: 1,
+          playerName: store.playerName || i18n.t("PLAYER"),
+          score: session.hud.best,
+          floors: session.hud.floors,
+        }]
+      : remoteLeaderboard;
+  const dashboardBest =
+    session.wink.status === "standalone"
+      ? session.hud.best
+      : session.wink.bestScore;
+  const dashboardPlayerName = session.wink.displayName ?? store.playerName;
 
   return (
     <>
@@ -31,47 +62,44 @@ export function GameUI({ session, store, gameControllerRef }: GameUIProps) {
         score={session.hud.score}
         floors={session.hud.floors}
         combo={session.hud.combo}
-        showHints={store.settings.showHints}
         onDashboard={store.openDashboard}
         onSettings={store.openSettings}
         onRestart={session.restartGame}
       />
 
       <CountdownOverlay countdown={session.countdown} />
-      <FloatingTextLayer callout={session.callout} />
 
       <ReviveScreen
         floors={session.hud.floors}
         running={session.status === "running"}
         visible={session.status === "revive"}
-        onRevive={() => session.confirmRevive(() => gameControllerRef.current?.revive())}
+        onRevive={() => {
+          session.confirmRevive(() => gameControllerRef.current?.revive());
+        }}
         onSkip={session.skipRevive}
       />
 
       <GameOverScreen
         score={session.hud.score}
-        best={session.hud.best}
+        best={dashboardBest}
         floors={session.hud.floors}
         running={session.status === "running"}
         visible={session.status === "gameOver"}
         countdown={session.countdown}
         character={store.settings.character}
         onRetry={session.restartGame}
-        onApplyX2Score={session.applyX2Score}
-        canSubmitScore={session.canSubmitScore}
+        onApplyX2Score={async () => {
+          session.applyX2Score();
+          return true;
+        }}
       />
 
       <DashboardScreen
         open={store.dashboardOpen}
         best={session.hud.best}
         lastScore={session.lastScore}
-        leaderboard={(session.leaderboard?.entries || []).map(entry => ({
-          rank: entry.rank,
-          playerName: entry.displayName || "Anonymous",
-          score: entry.score,
-          floors: (entry.metadata?.floors as number) || 0,
-        } as any))}
-        playerName={store.playerName}
+        leaderboard={leaderboard}
+        playerName={dashboardPlayerName}
         onClose={store.closeDashboard}
       />
 
@@ -79,9 +107,11 @@ export function GameUI({ session, store, gameControllerRef }: GameUIProps) {
         open={store.settingsOpen}
         musicMuted={store.settings.musicMuted}
         sfxMuted={store.settings.sfxMuted}
+        reducedMotion={store.settings.reducedMotion}
         onClose={store.closeSettings}
         onToggleMusic={() => store.updateSettings({ musicMuted: !store.settings.musicMuted })}
         onToggleSfx={() => store.updateSettings({ sfxMuted: !store.settings.sfxMuted })}
+        onToggleMotion={() => store.updateSettings({ reducedMotion: !store.settings.reducedMotion })}
       />
     </>
   );

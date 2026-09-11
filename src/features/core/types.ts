@@ -1,3 +1,5 @@
+import type { ScoreOutcome } from "../logic/scoring";
+
 export type GameStatus = "idle" | "countdown" | "running" | "revive" | "x2score" | "gameOver" | "paused";
 export type GameSubstate = "moving" | "dropping" | "paused" | "gameOver";
 
@@ -37,6 +39,7 @@ export interface Spark {
 export interface FloatingFlash {
   id: number;
   txt: string;
+  combo?: number;
   x: number;
   y: number;
   alpha: number;
@@ -84,6 +87,12 @@ export interface GameState {
   flashId: number;
   lastPlacement: PlacementEvent | null;
   perfectHighlight: { x: number; y: number; w: number; alpha: number } | null;
+}
+
+export interface DropResult {
+  status: "placed" | "ignored" | "gameOver";
+  gameOver: boolean;
+  placement: ScoreOutcome | null;
 }
 
 export interface GameResult {

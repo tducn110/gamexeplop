@@ -5,6 +5,7 @@ const BLOCK_TEXTURE_HEIGHT = 44;
 const BLOCK_SHEET_ASSET = "/assets/blockrender.svg";
 const BLOCK_SHEET_VIEWBOX = { width: 1440, height: 810 };
 
+
 type ViewBoxFrame = { x: number; y: number; width: number; height: number };
 
 const BLOCK_FRAMES: ViewBoxFrame[] = [
@@ -74,7 +75,7 @@ function createSparkTexture(app: Application) {
 export async function createGameTextures(app: Application): Promise<GameTextures> {
   const blockSheet = await Assets.load<Texture>({
     src: BLOCK_SHEET_ASSET,
-    data: { resolution: 2 } // Load SVG at 2x resolution for sharpness without breaking 4096px WebGL limits
+    data: { resolution: 2 }, // SVG rendered at 2× → 2880×1620px, within 4096px WebGL limit
   });
   const blocks = BLOCK_FRAMES.map((frame) => createFrameTexture(blockSheet, frame));
   const spark = createSparkTexture(app);

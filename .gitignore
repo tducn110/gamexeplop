@@ -10,3 +10,5 @@ dist-ssr
 
 # Wink deployment evidence (local only)
 artifacts/
+repomix-output.xml
+backups/

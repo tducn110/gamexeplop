@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { lazy, Suspense, useRef, useEffect } from "react";
 import { useGameSession } from "@/features/state/useGameSession";
 import { useGameStore } from "@/features/state/useGameStore";
@@ -11,11 +12,12 @@ const PixiGameStage = lazy(async () => {
 });
 
 export function RootRoute() {
+  const { t } = useTranslation();
   const store = useGameStore();
   const session = useGameSession(store.playerName);
   const gameControllerRef = useRef<{ revive: () => void } | null>(null);
 
-  const { playSlice, playBomb } = useGameSound(store.settings.sfxMuted);
+  useGameSound(store.settings.sfxMuted);
 
   useEffect(() => {
     audioManager.setMusicMuted(store.settings.musicMuted);
@@ -24,26 +26,12 @@ export function RootRoute() {
   useEffect(() => {
     if (session.status === "running") {
       audioManager.requestBgm(audioManager.gameBgmVolume);
-    } else if (session.status === "idle") {
+    } else if (session.status === "idle" || session.status === "paused") {
       audioManager.requestBgm(audioManager.landingBgmVolume);
     } else if (session.status === "gameOver" || session.status === "revive") {
       audioManager.requestBgm(0.05);
     }
   }, [session.status]);
-
-  useEffect(() => {
-    if (session.callout) {
-      if (session.callout.tone === "perfect" || session.callout.tone === "good") {
-        playSlice(session.callout.combo);
-      }
-    }
-  }, [session.callout, playSlice]);
-
-  useEffect(() => {
-    if (session.status === "revive" || session.status === "gameOver") {
-      playBomb();
-    }
-  }, [session.status, playBomb]);
 
   useEffect(() => {
     if (store.settingsOpen || store.dashboardOpen) {
@@ -57,13 +45,12 @@ export function RootRoute() {
     }
   }, []);
 
-  const handleResumeGame = async () => {
-    try {
-      await audioManager.unlockFromGesture();
-      audioManager.requestBgm(audioManager.gameBgmVolume);
-    } catch (error) {
+  const handleResumeGame = () => {
+    // ponytail: global pointerdown capture already plays button sfx for .start-ready
+    audioManager.requestBgm(audioManager.gameBgmVolume);
+    void audioManager.unlockAudio().catch((error) => {
       console.warn("Audio unlock failed", error);
-    }
+    });
     session.resumeGame();
   };
 
@@ -76,9 +63,11 @@ export function RootRoute() {
             status={session.status}
             onScoreChange={session.commitHud}
             onGameOver={session.handleGameOverEvent}
-            onPlacement={session.pushPlacement}
             onResumeGame={handleResumeGame}
+            hostPaused={session.hostPaused}
+            showStartPrompt={!session.hasStarted}
             gameControllerRef={gameControllerRef}
+            reducedMotion={store.settings.reducedMotion}
           />
         </Suspense>
 

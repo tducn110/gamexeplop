@@ -1,5 +1,5 @@
 {
-  "source": "a_clean_high_resolution_sticker_sheet_style_illu.png",
+  "source": "a_clean_high_resolution_sticker_sheet_style_illu.webp",
   "cut_method": "connected-component extraction from full sheet, transparent background cleanup",
   "output_canvas": {
     "width": 512,
@@ -15,7 +15,7 @@
   "sprites": [
     {
       "name": "01_idle_smile",
-      "file": "01_idle_smile.png",
+      "file": "01_idle_smile.webp",
       "source_bbox": {
         "x": 36,
         "y": 72,
@@ -38,7 +38,7 @@
     },
     {
       "name": "02_wave",
-      "file": "02_wave.png",
+      "file": "02_wave.webp",
       "source_bbox": {
         "x": 315,
         "y": 75,
@@ -61,7 +61,7 @@
     },
     {
       "name": "03_excited_laugh",
-      "file": "03_excited_laugh.png",
+      "file": "03_excited_laugh.webp",
       "source_bbox": {
         "x": 642,
         "y": 68,
@@ -84,7 +84,7 @@
     },
     {
       "name": "04_wink",
-      "file": "04_wink.png",
+      "file": "04_wink.webp",
       "source_bbox": {
         "x": 910,
         "y": 62,
@@ -107,7 +107,7 @@
     },
     {
       "name": "05_calm_pray",
-      "file": "05_calm_pray.png",
+      "file": "05_calm_pray.webp",
       "source_bbox": {
         "x": 1210,
         "y": 84,
@@ -130,7 +130,7 @@
     },
     {
       "name": "06_surprised",
-      "file": "06_surprised.png",
+      "file": "06_surprised.webp",
       "source_bbox": {
         "x": 59,
         "y": 432,
@@ -153,7 +153,7 @@
     },
     {
       "name": "07_cheer",
-      "file": "07_cheer.png",
+      "file": "07_cheer.webp",
       "source_bbox": {
         "x": 315,
         "y": 420,
@@ -176,7 +176,7 @@
     },
     {
       "name": "08_sad",
-      "file": "08_sad.png",
+      "file": "08_sad.webp",
       "source_bbox": {
         "x": 653,
         "y": 432,
@@ -199,7 +199,7 @@
     },
     {
       "name": "09_angry",
-      "file": "09_angry.png",
+      "file": "09_angry.webp",
       "source_bbox": {
         "x": 892,
         "y": 405,
@@ -222,7 +222,7 @@
     },
     {
       "name": "10_cool_sunglasses",
-      "file": "10_cool_sunglasses.png",
+      "file": "10_cool_sunglasses.webp",
       "source_bbox": {
         "x": 1208,
         "y": 425,
@@ -245,7 +245,7 @@
     },
     {
       "name": "11_love_heart",
-      "file": "11_love_heart.png",
+      "file": "11_love_heart.webp",
       "source_bbox": {
         "x": 55,
         "y": 753,
@@ -268,7 +268,7 @@
     },
     {
       "name": "12_run",
-      "file": "12_run.png",
+      "file": "12_run.webp",
       "source_bbox": {
         "x": 307,
         "y": 757,
@@ -291,7 +291,7 @@
     },
     {
       "name": "13_sleepy",
-      "file": "13_sleepy.png",
+      "file": "13_sleepy.webp",
       "source_bbox": {
         "x": 652,
         "y": 732,
@@ -314,7 +314,7 @@
     },
     {
       "name": "14_search_magnifier",
-      "file": "14_search_magnifier.png",
+      "file": "14_search_magnifier.webp",
       "source_bbox": {
         "x": 912,
         "y": 753,
@@ -337,7 +337,7 @@
     },
     {
       "name": "15_confused_question",
-      "file": "15_confused_question.png",
+      "file": "15_confused_question.webp",
       "source_bbox": {
         "x": 1184,
         "y": 750,
