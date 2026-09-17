@@ -17,8 +17,14 @@ const getInitialLanguage = (): SupportedLanguage => {
 const persistLanguage = (language: string): void => {
   const normalized = language.split('-')[0];
   if (typeof window === 'undefined' || !isSupportedLanguage(normalized)) return;
-  try { window.localStorage.setItem(LANGUAGE_STORAGE_KEY, normalized); } catch { /* Optional persistence. */ }
+  try {
+    window.localStorage.setItem(LANGUAGE_STORAGE_KEY, normalized);
+    if (typeof document !== 'undefined') {
+      document.documentElement.lang = normalized;
+    }
+  } catch { /* Optional persistence. */ }
 };
+
 
 const resources = {
   vi: {
@@ -109,11 +115,16 @@ const resources = {
   }
 };
 
+const initialLanguage = getInitialLanguage();
+if (typeof document !== 'undefined') {
+  document.documentElement.lang = initialLanguage;
+}
+
 i18n
   .use(initReactI18next)
   .init({
     resources,
-    lng: getInitialLanguage(),
+    lng: initialLanguage,
     supportedLngs: ['vi', 'en'],
     fallbackLng: 'en',
     interpolation: {

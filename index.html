@@ -153,6 +153,9 @@
           }
         }
 
+        // Imperative dismiss hook for game-loader
+        window.__PAPA_DISMISS_LOADING__ = dismissScreen;
+
         // Global API for React App
         window.PapaLoading = {
           setProgress: function(pct) {
