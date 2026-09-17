@@ -1,12 +1,18 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
-const LANGUAGE_STORAGE_KEY = 'xeplop-language';
+const LANGUAGE_STORAGE_KEY = '04-xeplop-language';
 type SupportedLanguage = 'vi' | 'en';
 const isSupportedLanguage = (value: string | null): value is SupportedLanguage => value === 'vi' || value === 'en';
 const getInitialLanguage = (): SupportedLanguage => {
   if (typeof window === 'undefined') return 'en';
-  try { const value = window.localStorage.getItem(LANGUAGE_STORAGE_KEY); return isSupportedLanguage(value) ? value : 'en'; } catch { return 'en'; }
+  try {
+    const value = window.localStorage.getItem(LANGUAGE_STORAGE_KEY);
+    if (isSupportedLanguage(value)) return value;
+  } catch {
+    // Storage read failure fallback
+  }
+  return 'en';
 };
 const persistLanguage = (language: string): void => {
   const normalized = language.split('-')[0];

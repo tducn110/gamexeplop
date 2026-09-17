@@ -45,45 +45,106 @@ function normalizeLocale(value?: string): "vi" | "en" {
 // Global bootstrap promise so multiple hook instances share the same initialization
 let globalInitPromise: Promise<WinkSDK | null> | null = null;
 let lastTargetWink: unknown = undefined;
+let isResolving = false;
+let activeTimerCleanup: (() => void) | null = null;
 
 export function resetGlobalWinkInit(): void {
+  if (activeTimerCleanup) {
+    activeTimerCleanup();
+    activeTimerCleanup = null;
+  }
   globalInitPromise = null;
   lastTargetWink = undefined;
+  isResolving = false;
 }
 
 export function resolveGlobalWink(): Promise<WinkSDK | null> {
-  const currentWink = typeof window !== "undefined" ? window.Wink : undefined;
-  if (globalInitPromise && lastTargetWink === currentWink) {
-    return globalInitPromise;
+  const currentWink = typeof window === "undefined" ? undefined : window.Wink;
+  if (globalInitPromise) {
+    if (isResolving || lastTargetWink === currentWink) {
+      return globalInitPromise;
+    }
   }
-  lastTargetWink = currentWink;
 
-  globalInitPromise = new Promise((resolve) => {
+  isResolving = true;
+  lastTargetWink = currentWink;
+  globalInitPromise = new Promise<WinkSDK | null>((resolve) => {
     if (typeof window === "undefined") {
+      isResolving = false;
       resolve(null);
       return;
     }
 
-    const checkSdk = () => {
-      if (window.Wink?.init) {
-        window.Wink.init()
-          .then((sdk) => resolve(sdk))
-          .catch(() => resolve(window.Wink || null));
-        return true;
+    let isSettled = false;
+    const finish = (result: WinkSDK | null) => {
+      if (isSettled) return;
+      isSettled = true;
+      isResolving = false;
+      lastTargetWink = typeof window !== "undefined" ? window.Wink : undefined;
+      if (activeTimerCleanup) {
+        activeTimerCleanup();
+        activeTimerCleanup = null;
       }
-      return false;
+      resolve(result);
     };
 
-    if (checkSdk()) return;
+    const startInit = (sdk: WinkSDK): boolean => {
+      if (!sdk || typeof sdk.init !== "function") return false;
+      try {
+        void sdk
+          .init()
+          .then((session) => finish(session ?? sdk))
+          .catch(() => finish(null));
+        return true;
+      } catch {
+        finish(null);
+        return true;
+      }
+    };
 
-    // In test environment, don't wait 2.5s if not in browser
-    const maxWaitMs = typeof process !== "undefined" && process.env.NODE_ENV === "test" ? 100 : 2000;
+    const initialSdk = window.Wink;
+    if (initialSdk && startInit(initialSdk)) {
+      return;
+    }
+
+    const timerFn = typeof setInterval === "function" ? setInterval : undefined;
+    const clearFn =
+      typeof clearInterval === "function" ? clearInterval : undefined;
+
+    if (!timerFn || !clearFn) {
+      finish(null);
+      return;
+    }
+
+    const maxWaitMs =
+      typeof process !== "undefined" && process.env.NODE_ENV === "test"
+        ? 100
+        : 2000;
     let elapsed = 0;
-    const interval = setInterval(() => {
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+
+    const stopInterval = () => {
+      if (intervalId !== null) {
+        clearFn(intervalId);
+        intervalId = null;
+      }
+    };
+
+    activeTimerCleanup = stopInterval;
+
+    intervalId = timerFn(() => {
       elapsed += 25;
-      if (checkSdk() || elapsed >= maxWaitMs) {
-        clearInterval(interval);
-        resolve(window.Wink || null);
+      const candidate = typeof window !== "undefined" ? window.Wink : undefined;
+      if (candidate && startInit(candidate)) {
+        stopInterval();
+        activeTimerCleanup = null;
+        return;
+      }
+
+      if (elapsed >= maxWaitMs) {
+        stopInterval();
+        activeTimerCleanup = null;
+        finish(null);
       }
     }, 25);
   });
@@ -92,15 +153,21 @@ export function resolveGlobalWink(): Promise<WinkSDK | null> {
 }
 
 export function useWinkIntegration(): WinkIntegration {
-  const [sdk, setSdk] = useState<WinkSDK | null>(typeof window !== "undefined" ? window.Wink || null : null);
+  const [sdk, setSdk] = useState<WinkSDK | null>(
+    typeof window !== "undefined" ? window.Wink || null : null,
+  );
   const [status, setStatus] = useState<WinkStatus>(sdk?.status ?? "connecting");
   const [isReady, setIsReady] = useState(false);
   const [hostPaused, setHostPaused] = useState(false);
   const [parentMuted, setParentMuted] = useState(sdk?.muted ?? false);
   const [locale, setLocale] = useState(normalizeLocale(sdk?.locale));
   const [error, setError] = useState<WinkIntegrationError | null>(null);
-  const [personalBest, setPersonalBest] = useState<WinkLeaderboardEntry | null>(null);
-  const [leaderboard, setLeaderboard] = useState<readonly WinkLeaderboardEntry[]>([]);
+  const [personalBest, setPersonalBest] = useState<WinkLeaderboardEntry | null>(
+    null,
+  );
+  const [leaderboard, setLeaderboard] = useState<
+    readonly WinkLeaderboardEntry[]
+  >([]);
 
   const sdkRef = useRef<WinkSDK | null>(sdk);
   sdkRef.current = sdk;
@@ -166,12 +233,9 @@ export function useWinkIntegration(): WinkIntegration {
     };
   }, []);
 
-  const can = useCallback(
-    (capability: WinkCapability): boolean => {
-      return sdkRef.current?.can(capability) ?? false;
-    },
-    [],
-  );
+  const can = useCallback((capability: WinkCapability): boolean => {
+    return sdkRef.current?.can(capability) ?? false;
+  }, []);
 
   const gameplayStart = useCallback(() => {
     try {
