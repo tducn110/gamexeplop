@@ -119,7 +119,7 @@ export function startDrop(
     return { status: "gameOver", gameOver: true, placement: outcome };
   }
 
-  state.blocks.push({ x: newX, w: newWidth });
+  state.blocks.push({ x: newX, w: newWidth, entityId: "block-" + state.blocks.length });
   state.combo = outcome.combo;
   state.bonusScore += outcome.scoreDelta + Math.round(Math.max(0, climbDistance) * DRAG_SCORE_FACTOR);
   syncHeightScore(state);
@@ -213,7 +213,7 @@ export function reviveGame(state: GameState, viewportWidth: number) {
   const newX = clamp(center - newWidth / 2, 0, Math.max(0, viewportWidth - newWidth));
 
   // Tặng thêm một khối bệ đỡ to để làm lại từ đầu
-  state.blocks.push({ x: newX, w: newWidth });
+  state.blocks.push({ x: newX, w: newWidth, entityId: "block-" + state.blocks.length });
   
   // Đồng bộ lại điểm số và camera cho khối bệ đỡ mới
   syncHeightScore(state);

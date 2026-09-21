@@ -5,7 +5,7 @@
   width: 100%;
   height: var(--game-visual-viewport-height, 100dvh);
   overflow: hidden;
-  background: #018bf7;
+  background: #f5ecd7 url("/assets/backgroundphone.webp") center bottom / cover no-repeat;
 }
 
 .shell-inner {
@@ -38,7 +38,7 @@
   left: 0;
   right: 0;
   width: 100%;
-  max-width: 480px;
+  max-width: none;
   margin: 0 auto;
   height: 100%;
   min-height: 0;
@@ -411,7 +411,7 @@
 
 @media (max-width: 720px) {
   .app-shell {
-    background: #0166f7;
+    background: #f5ecd7 url("/assets/backgroundphone.webp") center bottom / cover no-repeat;
   }
 
   .shell-inner {

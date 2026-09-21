@@ -9,7 +9,7 @@ export function createInitialState(viewportWidth: number): GameState {
   const motion = getMovingMotion(0, viewportWidth);
   return {
     sub: "moving",
-    blocks: [{ x: (viewportWidth - baseWidth) / 2, w: baseWidth }],
+    blocks: [{ x: (viewportWidth - baseWidth) / 2, w: baseWidth, entityId: "block-0" }],
     mv: {
       x: (viewportWidth - baseWidth) / 2,
       w: baseWidth,

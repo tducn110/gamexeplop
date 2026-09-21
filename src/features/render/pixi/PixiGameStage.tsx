@@ -16,6 +16,15 @@ import { playDropSfx, playLandSfx, playLoseSfx, playMatchSfx } from "../../../ut
 import { MobileDebugOverlay } from "@/platform/diagnostics/MobileDebugOverlay";
 import { createPortraitBackground, destroyPortraitBackground, syncPortraitBackground, type PortraitBackground } from "./portraitBackground";
 
+const MAX_PLAYFIELD_WIDTH = 480;
+
+function getPlayfieldMetrics(viewportWidth: number) {
+  const width = Math.min(viewportWidth, MAX_PLAYFIELD_WIDTH);
+  return {
+    width,
+    offsetX: Math.max(0, (viewportWidth - width) / 2),
+  };
+}
 
 interface PixiGameStageProps {
   sessionKey: number;
@@ -112,7 +121,8 @@ export function PixiGameStage({
 
   useEffect(() => {
     if (sessionKey <= 0) return;
-    gameRef.current = createGame(sizeRef.current.width);
+    const playfield = getPlayfieldMetrics(sizeRef.current.width);
+    gameRef.current = createGame(playfield.width);
     finishedKeyRef.current = null;
     lastPlacementTokenRef.current = null;
     lastScoreSnapshotRef.current = { score: -1, floors: -1, combo: -1 };
@@ -135,7 +145,8 @@ export function PixiGameStage({
       gameControllerRef.current = {
         revive: () => {
           if (gameRef.current) {
-            reviveGame(gameRef.current, sizeRef.current.width);
+            const playfield = getPlayfieldMetrics(sizeRef.current.width);
+            reviveGame(gameRef.current, playfield.width);
             finishedKeyRef.current = null;
           }
         }
@@ -162,7 +173,8 @@ export function PixiGameStage({
         onResumeGame?.();
       } else {
         if (!gameRef.current) return;
-        const res = startDrop(gameRef.current, sizeRef.current.height, sizeRef.current.width, intent.distance);
+        const playfield = getPlayfieldMetrics(sizeRef.current.width);
+        const res = startDrop(gameRef.current, sizeRef.current.height, playfield.width, intent.distance);
         if (res.status === "gameOver") {
           playLoseSfx();
           onGameOver?.(getGameResult(gameRef.current));
@@ -185,8 +197,13 @@ export function PixiGameStage({
       const game = gameRef.current;
       if (!game) return;
 
+      const { width, height } = sizeRef.current;
+      const playfield = getPlayfieldMetrics(width);
+      layers.world.x = playfield.offsetX;
+      layers.effects.x = playfield.offsetX;
+
       if (!hostPaused && (status === "running" || status === "gameOver")) {
-        const result = updateGame(game, ticker.deltaMS, sizeRef.current.width, sizeRef.current.height);
+        const result = updateGame(game, ticker.deltaMS, playfield.width, height);
         
         if (status === "running") {
           // ponytail: Only invoke React onScoreChange when values genuinely change (RC-08)
@@ -211,7 +228,6 @@ export function PixiGameStage({
         }
       }
 
-      const { width, height } = sizeRef.current;
       if (portraitBackgroundRef.current) {
         syncPortraitBackground(
           portraitBackgroundRef.current,
@@ -227,7 +243,7 @@ export function PixiGameStage({
       applyCameraTransform(layers.root, game, { enableShake: !reducedMotion });
 
       // ponytail: Sync sprites BEFORE consuming placement event so newly created top block exists for animation (RC-03)
-      syncWorldSprites(layers.world, game, texturesRef.current!, registry, sizeRef.current.height, sizeRef.current.width);
+      syncWorldSprites(layers.world, game, texturesRef.current!, registry, height, playfield.width);
       syncSparkGraphics(layers.sparkGraphics, game);
       syncFloatingTexts(layers.effects, game, textMap);
 

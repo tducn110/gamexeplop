@@ -8,7 +8,7 @@ body,
 }
 
 html {
-  background: #36c8df;
+  background: #f5ecd7 url("/assets/backgroundphone.webp") center bottom / cover no-repeat;
 }
 
 body {
@@ -22,7 +22,7 @@ body {
   width: 100%;
   height: var(--game-visual-viewport-height, 100dvh);
   min-height: 0;
-  background: #36c8df;
+  background: #f5ecd7 url("/assets/backgroundphone.webp") center bottom / cover no-repeat;
   touch-action: none;
 }
 

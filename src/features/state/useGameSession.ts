@@ -1,9 +1,12 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CRASH_CLIMAX_MS } from "../core/constants";
 import type { GameStatus } from "../core/types";
 import { audioManager } from "../../utils/audio-manager";
 import { advanceActiveCountdown } from "./activeCountdown";
 import { useWinkIntegration } from "../../integrations/wink/useWinkIntegration";
+
+const RESUME_COUNTDOWN_START = 3;
+const RESUME_COUNTDOWN_STEP_MS = 700;
 
 export interface SessionHudState {
   score: number;
@@ -30,15 +33,48 @@ export function useGameSession(playerName: string) {
   const countdownTimerRef = useRef<number | null>(null);
   const gameOverTimerRef = useRef<number | null>(null);
   const statusRef = useRef(status);
+  const hasStartedRef = useRef(hasStarted);
   const revivesUsedRef = useRef(revivesUsed);
   const hudRef = useRef(hud);
   const hostPausedRef = useRef(false);
 
   useEffect(() => {
     statusRef.current = status;
+    hasStartedRef.current = hasStarted;
     revivesUsedRef.current = revivesUsed;
     hudRef.current = hud;
-  }, [status, revivesUsed, hud]);
+  }, [status, hasStarted, revivesUsed, hud]);
+
+  const setSessionStatus = (nextStatus: GameStatus) => {
+    statusRef.current = nextStatus;
+    setStatus(nextStatus);
+  };
+
+  const clearCountdownTimer = () => {
+    if (countdownTimerRef.current) {
+      window.clearInterval(countdownTimerRef.current);
+      countdownTimerRef.current = null;
+    }
+  };
+
+  const startResumeCountdown = (onComplete: () => void) => {
+    clearCountdownTimer();
+    setSessionStatus("countdown");
+    setCountdown(RESUME_COUNTDOWN_START);
+
+    countdownTimerRef.current = window.setInterval(() => {
+      if (hostPausedRef.current) return;
+      setCountdown((current) => {
+        if (current === null) return null;
+        if (current <= 1) {
+          clearCountdownTimer();
+          onComplete();
+          return null;
+        }
+        return current - 1;
+      });
+    }, RESUME_COUNTDOWN_STEP_MS);
+  };
 
   useEffect(() => {
     if (wink.hostPaused !== hostPaused) {
@@ -48,34 +84,46 @@ export function useGameSession(playerName: string) {
   }, [wink.hostPaused, hostPaused]);
 
   const startGame = () => {
-    if (countdownTimerRef.current) window.clearInterval(countdownTimerRef.current);
+    clearCountdownTimer();
     if (gameOverTimerRef.current) window.clearInterval(gameOverTimerRef.current);
     gameOverTimerRef.current = null;
     hostPausedRef.current = false;
     setHostPaused(false);
     setHud((current) => ({ ...current, score: 0, floors: 0, combo: 0 }));
-    setStatus("paused");
+    setSessionStatus("paused");
     setHasStarted(false);
+    hasStartedRef.current = false;
+    setCountdown(null);
     setSessionKey((current) => current + 1);
     setRevivesUsed(0);
   };
 
   const restartGame = () => {
-    setStatus("paused");
+    setSessionStatus("paused");
     startGame();
   };
 
   const pauseGame = () => {
-    if (statusRef.current === "running") setStatus("paused");
+    if (statusRef.current === "running" || statusRef.current === "countdown") {
+      clearCountdownTimer();
+      setCountdown(null);
+      setSessionStatus("paused");
+    }
   };
 
   const resumeGame = () => {
     if (statusRef.current === "paused") {
-      if (!hasStarted) {
+      if (!hasStartedRef.current) {
         setHasStarted(true);
+        hasStartedRef.current = true;
         wink.gameplayStart();
+        setSessionStatus("running");
+        return;
       }
-      setStatus("running");
+
+      startResumeCountdown(() => {
+        setSessionStatus("running");
+      });
     }
   };
 
@@ -120,25 +168,12 @@ export function useGameSession(playerName: string) {
   };
 
   const confirmRevive = (reviveCallback: () => void) => {
-    setStatus("countdown");
-    setCountdown(3);
     setRevivesUsed((current) => current + 1);
     reviveCallback();
-    
-    if (countdownTimerRef.current) window.clearInterval(countdownTimerRef.current);
-    countdownTimerRef.current = window.setInterval(() => {
-      if (hostPausedRef.current) return;
-      setCountdown((current) => {
-        if (current === null) return null;
-        if (current <= 1) {
-          if (countdownTimerRef.current) window.clearInterval(countdownTimerRef.current);
-          countdownTimerRef.current = null;
-          setStatus("running");
-          return null;
-        }
-        return current - 1;
-      });
-    }, 320);
+
+    startResumeCountdown(() => {
+      setSessionStatus("running");
+    });
   };
 
   const applyX2Score = () => {
@@ -147,7 +182,9 @@ export function useGameSession(playerName: string) {
   };
 
   const finishGame = (payload: { score: number; floors: number }) => {
-    setStatus("gameOver");
+    clearCountdownTimer();
+    setCountdown(null);
+    setSessionStatus("gameOver");
     setLastScore(payload.score);
     wink.gameplayStop();
     if (wink.can("submitScore")) {

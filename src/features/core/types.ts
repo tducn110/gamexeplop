@@ -6,6 +6,7 @@ export type GameSubstate = "moving" | "dropping" | "paused" | "gameOver";
 export interface Block {
   x: number;
   w: number;
+  entityId?: string;
 }
 
 export interface DroppingBlock {

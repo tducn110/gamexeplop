@@ -16,6 +16,8 @@ export function RootRoute() {
   const store = useGameStore();
   const session = useGameSession(store.playerName);
   const gameControllerRef = useRef<{ revive: () => void } | null>(null);
+  const overlayWasOpenRef = useRef(false);
+  const resumeAfterOverlayRef = useRef(false);
 
   useGameSound(store.settings.sfxMuted);
 
@@ -33,11 +35,24 @@ export function RootRoute() {
     }
   }, [session.status]);
 
+  const blockingOverlayOpen = store.settingsOpen || store.dashboardOpen;
+
   useEffect(() => {
-    if (store.settingsOpen || store.dashboardOpen) {
+    if (blockingOverlayOpen) {
+      if (
+        !overlayWasOpenRef.current &&
+        (session.status === "running" || session.status === "countdown")
+      ) {
+        resumeAfterOverlayRef.current = true;
+      }
       session.pauseGame();
+    } else if (overlayWasOpenRef.current && resumeAfterOverlayRef.current) {
+      resumeAfterOverlayRef.current = false;
+      session.resumeGame();
     }
-  }, [store.settingsOpen, store.dashboardOpen]);
+
+    overlayWasOpenRef.current = blockingOverlayOpen;
+  }, [blockingOverlayOpen, session.status]);
 
   useEffect(() => {
     if (session.sessionKey === 0) {

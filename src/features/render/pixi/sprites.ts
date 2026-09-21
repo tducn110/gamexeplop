@@ -209,6 +209,29 @@ export function syncWorldSprites(
     }
   }
 
+  // Debug log for block disappearing issue
+  if (typeof window !== "undefined") {
+    const traceLog: any[] = [];
+    for (let index = 0; index < state.blocks.length; index++) {
+      const block = state.blocks[index];
+      const key = `block-${index}`;
+      const view = registry.blocks.get(key);
+      traceLog.push({
+        entityId: block.entityId || key,
+        stateExists: !!block,
+        physicsBodyExists: !!block, // Conceptual mapped
+        spriteExists: !!view,
+        spriteVisible: view ? view.visible : false,
+        spriteRenderable: view ? view.renderable : false,
+        innerVisible: view?.sprite ? view.sprite.visible : false,
+      });
+      if (view && (!view.visible || (view.sprite && !view.sprite.visible))) {
+        console.warn(`[XEPLOP_DEBUG] Block ${block.entityId || key} missing!`, block);
+      }
+    }
+    (window as any)._xeplop_debug_trace = traceLog;
+  }
+
   const nextIndex = state.blocks.length;
 
   if (state.sub === "moving") {
