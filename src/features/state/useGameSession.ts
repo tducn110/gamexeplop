@@ -17,7 +17,7 @@ export interface SessionHudState {
 
 export function useGameSession(playerName: string) {
   const wink = useWinkIntegration();
-  const [status, setStatus] = useState<GameStatus>("paused");
+  const [status, setStatus] = useState<GameStatus>("idle");
   const [hasStarted, setHasStarted] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [sessionKey, setSessionKey] = useState(0);
@@ -90,7 +90,7 @@ export function useGameSession(playerName: string) {
     hostPausedRef.current = false;
     setHostPaused(false);
     setHud((current) => ({ ...current, score: 0, floors: 0, combo: 0 }));
-    setSessionStatus("paused");
+    setSessionStatus("idle");
     setHasStarted(false);
     hasStartedRef.current = false;
     setCountdown(null);
@@ -99,7 +99,7 @@ export function useGameSession(playerName: string) {
   };
 
   const restartGame = () => {
-    setSessionStatus("paused");
+    setSessionStatus("idle");
     startGame();
   };
 
@@ -112,15 +112,15 @@ export function useGameSession(playerName: string) {
   };
 
   const resumeGame = () => {
-    if (statusRef.current === "paused") {
-      if (!hasStartedRef.current) {
-        setHasStarted(true);
-        hasStartedRef.current = true;
-        wink.gameplayStart();
-        setSessionStatus("running");
-        return;
-      }
+    if (statusRef.current === "idle" || (!hasStartedRef.current && statusRef.current === "paused")) {
+      setHasStarted(true);
+      hasStartedRef.current = true;
+      wink.gameplayStart();
+      setSessionStatus("running");
+      return;
+    }
 
+    if (statusRef.current === "paused") {
       startResumeCountdown(() => {
         setSessionStatus("running");
       });

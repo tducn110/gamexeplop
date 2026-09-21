@@ -79,6 +79,7 @@ export function RootRoute() {
             onScoreChange={session.commitHud}
             onGameOver={session.handleGameOverEvent}
             onResumeGame={handleResumeGame}
+            rendererPaused={session.hostPaused}
             hostPaused={session.hostPaused}
             showStartPrompt={!session.hasStarted}
             gameControllerRef={gameControllerRef}

@@ -32,6 +32,7 @@ interface PixiGameStageProps {
   onScoreChange: (payload: { score: number; floors: number; combo: number }) => void;
   onGameOver: (payload: { score: number; floors: number }) => void;
   onResumeGame?: () => void;
+  rendererPaused?: boolean;
   hostPaused: boolean;
   showStartPrompt: boolean;
   gameControllerRef?: React.MutableRefObject<{ revive: () => void } | null>;
@@ -48,7 +49,7 @@ function drawBackgroundOverlay(g: Graphics, width: number, height: number, score
 }
 
 export function PixiGameStage({
- sessionKey, status, onScoreChange, onGameOver, onResumeGame, hostPaused, showStartPrompt, gameControllerRef, reducedMotion }: PixiGameStageProps) {
+ sessionKey, status, onScoreChange, onGameOver, onResumeGame, rendererPaused = false, hostPaused, showStartPrompt, gameControllerRef, reducedMotion }: PixiGameStageProps) {
   const { wrapRef, appRef, layersRef, sizeRef, ready, viewport } = usePixiApp();
   const { t } = useTranslation();
   const gameRef = useRef<GameState | null>(null);
@@ -137,7 +138,7 @@ export function PixiGameStage({
   }, [sessionKey, sizeRef]);
 
   useEffect(() => {
-    if (status !== "paused") resumeRequestedRef.current = false;
+    if (status !== "paused" && status !== "idle") resumeRequestedRef.current = false;
   }, [status]);
 
   useEffect(() => {
@@ -154,20 +155,22 @@ export function PixiGameStage({
     }
   }, [gameControllerRef, sizeRef]);
 
+  const isPaused = hostPaused || rendererPaused;
+
   useGameInput({
     app: appRef.current,
-    enabled: texturesReady && !hostPaused && (status === "running" || status === "paused"),
+    enabled: texturesReady && !isPaused && (status === "running" || status === "idle" || status === "paused"),
     onPointerDown: () => {
-      if (hostPaused) return;
-      if (status === "paused") {
+      if (isPaused) return;
+      if (status === "idle" || status === "paused") {
         if (!onResumeGame || resumeRequestedRef.current) return;
         resumeRequestedRef.current = true;
         onResumeGame?.();
       }
     },
     onAction: (intent) => {
-      if (hostPaused) return;
-      if (status === "paused") {
+      if (isPaused) return;
+      if (status === "idle" || status === "paused") {
         if (!onResumeGame || resumeRequestedRef.current) return;
         resumeRequestedRef.current = true;
         onResumeGame?.();
@@ -194,6 +197,8 @@ export function PixiGameStage({
     const textMap = textMapRef.current;
 
     const tick = () => {
+      if (isPaused) return;
+
       const game = gameRef.current;
       if (!game) return;
 
@@ -202,7 +207,7 @@ export function PixiGameStage({
       layers.world.x = playfield.offsetX;
       layers.effects.x = playfield.offsetX;
 
-      if (!hostPaused && (status === "running" || status === "gameOver")) {
+      if (status === "running" || status === "gameOver") {
         const result = updateGame(game, ticker.deltaMS, playfield.width, height);
         
         if (status === "running") {
@@ -247,7 +252,7 @@ export function PixiGameStage({
       syncSparkGraphics(layers.sparkGraphics, game);
       syncFloatingTexts(layers.effects, game, textMap);
 
-      if (!hostPaused && status === "running" && game.lastPlacement && game.lastPlacement.token !== lastPlacementTokenRef.current) {
+      if (status === "running" && game.lastPlacement && game.lastPlacement.token !== lastPlacementTokenRef.current) {
         lastPlacementTokenRef.current = game.lastPlacement.token;
         const topSprite = registry.blocks.get(`block-${game.blocks.length - 1}`) ?? null;
         runPlacementAnimation(game.lastPlacement.kind, topSprite, layers.world, game.lastPlacement.combo, reducedMotion);
@@ -276,7 +281,7 @@ export function PixiGameStage({
     return () => {
       ticker.remove(tick);
     };
-  }, [ready, texturesReady, appRef, layersRef, onGameOver, onScoreChange, sessionKey, sizeRef, status, hostPaused, reducedMotion]);
+  }, [ready, texturesReady, appRef, layersRef, onGameOver, onScoreChange, sessionKey, sizeRef, status, isPaused, reducedMotion]);
 
   useEffect(() => {
     return () => {
@@ -300,7 +305,7 @@ export function PixiGameStage({
         aria-label="Sân chơi kéo lên trời"
       >
         {!stageReady ? <div className="stage-loading">Đang tải sân chơi...</div> : null}
-        {stageReady && status === "paused" && showStartPrompt ? (
+        {stageReady && (status === "idle" || status === "paused") && showStartPrompt ? (
           <button
             type="button"
             className="start-ready"
