@@ -3,7 +3,8 @@ export type WinkStatus = 'connecting' | 'connected' | 'online' | 'standalone';
 export type WinkCapability =
   | 'getLeaderboard'
   | 'submitScore'
-  | 'complete';
+  | 'complete'
+  | 'track';
 
 export type WinkEvent =
   | 'pause'
@@ -81,6 +82,7 @@ export interface WinkSDK {
   getPersonalBest(options?: unknown): Promise<{ me: WinkLeaderboardEntry | null }>;
   on(event: WinkEvent, listener: (data?: any) => void): () => void;
   can(capability: WinkCapability): boolean;
+  track(eventName: string, properties?: Record<string, unknown>): Promise<void>;
   readonly player: WinkPlayer | null;
   readonly locale: string;
   readonly muted: boolean;
@@ -112,6 +114,7 @@ export interface WinkIntegration {
   can(capability: WinkCapability): boolean;
   gameplayStart(): void;
   gameplayStop(): void;
+  track(eventName: string, properties?: Record<string, unknown>): void;
   refreshLeaderboard(): Promise<void>;
   refreshPersonalBest(): Promise<void>;
   submitFinalScore(input: {

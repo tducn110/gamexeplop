@@ -116,6 +116,7 @@ export function useGameSession(playerName: string) {
       setHasStarted(true);
       hasStartedRef.current = true;
       wink.gameplayStart();
+      wink.track("level_start", { mode: "endless" });
       setSessionStatus("running");
       return;
     }
@@ -169,6 +170,7 @@ export function useGameSession(playerName: string) {
 
   const confirmRevive = (reviveCallback: () => void) => {
     setRevivesUsed((current) => current + 1);
+    wink.track("powerup_used", { type: "revive" });
     reviveCallback();
 
     startResumeCountdown(() => {
@@ -177,6 +179,7 @@ export function useGameSession(playerName: string) {
   };
 
   const applyX2Score = () => {
+    wink.track("powerup_used", { type: "x2_score" });
     setHud((current) => ({ ...current, score: current.score * 2 }));
     finishGame({ score: hudRef.current.score * 2, floors: hudRef.current.floors });
   };
@@ -187,6 +190,7 @@ export function useGameSession(playerName: string) {
     setSessionStatus("gameOver");
     setLastScore(payload.score);
     wink.gameplayStop();
+    wink.track("level_complete", { score: payload.score, floors: payload.floors });
     if (wink.can("submitScore")) {
       void wink.submitFinalScore({ score: payload.score }).catch(() => {});
     }

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { X } from "lucide-react";
 import gsap from "gsap";
 
@@ -32,6 +33,8 @@ export function PanelFrame({
     }
   }, []);
 
+  const { t } = useTranslation();
+
   return (
     <div ref={frameRef} className={className} style={{
       position: "absolute", top: 12, right: 12,
@@ -54,7 +57,8 @@ export function PanelFrame({
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
         <span style={{ fontWeight: 900, fontSize: 17, color: "var(--ink-dark)" }}>{title}</span>
         <button
-          aria-label="Đóng"
+          type="button"
+          aria-label={t("CLOSE", "Đóng")}
           onClick={onClose}
           style={{
             display: "flex",

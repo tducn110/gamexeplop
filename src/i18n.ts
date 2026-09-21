@@ -1,30 +1,87 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
-const LANGUAGE_STORAGE_KEY = '04-xeplop-language';
+export const LANGUAGE_STORAGE_KEY = '04-xeplop-language';
+const LEGACY_STORAGE_KEYS = ['game-straw-stack-language', 'xeplop-language'];
+
 type SupportedLanguage = 'vi' | 'en';
-const isSupportedLanguage = (value: string | null): value is SupportedLanguage => value === 'vi' || value === 'en';
-const getInitialLanguage = (): SupportedLanguage => {
+export function isSupportedLanguage(value: string | null): value is SupportedLanguage {
+  return value === 'vi' || value === 'en';
+}
+
+export function hasStoredLanguagePreference(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    const value = window.localStorage.getItem(LANGUAGE_STORAGE_KEY);
+    if (isSupportedLanguage(value)) return true;
+    for (const legacyKey of LEGACY_STORAGE_KEYS) {
+      const legacyValue = window.localStorage.getItem(legacyKey);
+      if (isSupportedLanguage(legacyValue)) return true;
+    }
+  } catch {
+    return false;
+  }
+  return false;
+}
+
+export function getInitialLanguage(): SupportedLanguage {
   if (typeof window === 'undefined') return 'en';
   try {
     const value = window.localStorage.getItem(LANGUAGE_STORAGE_KEY);
     if (isSupportedLanguage(value)) return value;
+    for (const legacyKey of LEGACY_STORAGE_KEYS) {
+      const legacyValue = window.localStorage.getItem(legacyKey);
+      if (isSupportedLanguage(legacyValue)) {
+        try {
+          window.localStorage.setItem(LANGUAGE_STORAGE_KEY, legacyValue);
+        } catch {}
+        return legacyValue;
+      }
+    }
   } catch {
     // Storage read failure fallback
   }
   return 'en';
-};
-const persistLanguage = (language: string): void => {
+}
+
+let isApplyingHostLocale = false;
+
+export function persistLanguage(language: string): void {
   const normalized = language.split('-')[0];
   if (typeof window === 'undefined' || !isSupportedLanguage(normalized)) return;
+
+  if (typeof document !== 'undefined') {
+    document.documentElement.lang = normalized;
+  }
+
+  if (isApplyingHostLocale) return;
+
   try {
     window.localStorage.setItem(LANGUAGE_STORAGE_KEY, normalized);
-    if (typeof document !== 'undefined') {
-      document.documentElement.lang = normalized;
-    }
-  } catch { /* Optional persistence. */ }
+  } catch {
+    // Optional persistence
+  }
+}
+
+export const formatNumber = (value: number, lang?: string): string => {
+  const current = lang || i18n.resolvedLanguage || i18n.language || 'en';
+  return value.toLocaleString(current.startsWith('vi') ? 'vi-VN' : 'en-US');
 };
 
+export function applyHostLocale(value?: string): SupportedLanguage {
+  if (hasStoredLanguagePreference()) {
+    return i18n.resolvedLanguage?.startsWith('vi') ? 'vi' : 'en';
+  }
+  const baseLocale = value?.trim().toLowerCase().split(/[-_]/, 1)[0];
+  const normalized: SupportedLanguage = baseLocale === 'vi' ? 'vi' : 'en';
+  try {
+    isApplyingHostLocale = true;
+    void i18n.changeLanguage(normalized);
+  } finally {
+    isApplyingHostLocale = false;
+  }
+  return normalized;
+}
 
 const resources = {
   vi: {
@@ -125,7 +182,7 @@ i18n
   .init({
     resources,
     lng: initialLanguage,
-    supportedLngs: ['vi', 'en'],
+    supportedLngs: ['en', 'vi'],
     fallbackLng: 'en',
     interpolation: {
       escapeValue: false

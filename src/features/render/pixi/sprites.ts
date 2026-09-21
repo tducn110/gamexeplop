@@ -3,7 +3,7 @@ import { getMovingBlockY } from "../../core/core";
 import type { GameState } from "../../core/types";
 import { BLOCK_HEIGHT } from "../../core/constants";
 import { getBlockY } from "../../logic/rules";
-import type { GameTextures } from "./textures";
+import { BLOCK_PALETTE, type GameTextures } from "./textures";
 
 type BlockView = Container & {
   shadow: Graphics;
@@ -105,16 +105,41 @@ function drawBlockArt(
 
   const radius = Math.max(7, Math.min(13, safeWidth * 0.05));
   
-  // Choose random texture based on index (index is deterministic for a given block height/piece)
-  const textureIndex = (options.index ?? 0) % textures.blocks.length;
-  sprite.texture = textures.blocks[textureIndex] || Texture.EMPTY;
-  sprite.alpha = alpha;
-  sprite.visible = true;
+  // Choose texture based on index (index is deterministic for a given block height/piece)
+  const textureIndex = (options.index ?? 0) % (textures.blocks.length || 1);
+  const texture = textures.blocks[textureIndex] || Texture.EMPTY;
+  const isTextureValid = Boolean(
+    texture &&
+    texture !== Texture.EMPTY &&
+    texture.source &&
+    texture.width > 1 &&
+    texture.height > 1
+  );
 
-  // Use fitSpriteByCrop to proportionally scale and crop the sprite without stretching
-  fitSpriteByCrop(sprite, view.clip, safeWidth, referenceWidth);
+  if (isTextureValid) {
+    sprite.texture = texture;
+    sprite.alpha = alpha;
+    sprite.visible = true;
+    // Use fitSpriteByCrop to proportionally scale and crop the sprite without stretching
+    fitSpriteByCrop(sprite, view.clip, safeWidth, referenceWidth);
+  } else {
+    // FALLBACK PROCEDURAL VECTOR BLOCK ON art:
+    // If sprite texture is invalid, missing, or failed, render a solid styled straw block directly.
+    // This ensures the block is NEVER invisible even during network errors or texture load failures.
+    sprite.visible = false;
+    view.clip.clear();
+    const color = BLOCK_PALETTE[textureIndex % BLOCK_PALETTE.length] ?? 0xf4a261;
+    art.roundRect(0, 0, safeWidth, BLOCK_HEIGHT, radius)
+      .fill({ color, alpha });
+    // Straw highlight top layer
+    art.roundRect(2, 2, Math.max(0, safeWidth - 4), Math.floor(BLOCK_HEIGHT * 0.38), Math.max(3, radius - 2))
+      .fill({ color: 0xffffff, alpha: 0.3 * alpha });
+    // Subtle edge border
+    art.roundRect(0, 0, safeWidth, BLOCK_HEIGHT, radius)
+      .stroke({ color: 0x000000, alpha: 0.15 * alpha, width: 1.5 });
+  }
 
-  // Simple shadow bottom
+  // Simple shadow bottom (drawn procedurally)
   shadow.ellipse(safeWidth / 2, BLOCK_HEIGHT + 4, Math.max(20, safeWidth * 0.45), 7)
     .fill({ color: 0x173447, alpha: options.active ? 0.28 * alpha : 0.2 * alpha });
 
@@ -209,24 +234,34 @@ export function syncWorldSprites(
     }
   }
 
-  // Debug log for block disappearing issue
+  // Diagnostic trace for asset and block rendering
   if (typeof window !== "undefined") {
     const traceLog: any[] = [];
     for (let index = 0; index < state.blocks.length; index++) {
       const block = state.blocks[index];
       const key = `block-${index}`;
       const view = registry.blocks.get(key);
+      const hasValidTexture = Boolean(
+        view?.sprite?.texture &&
+        view.sprite.texture !== Texture.EMPTY &&
+        view.sprite.texture.width > 1
+      );
+      const hasArtGeometry = Boolean(view?.art && (view.art as any).geometry?.graphicsData?.length);
+      const isVisible = Boolean(view && view.visible && (view.sprite.visible || view.art.visible));
+
       traceLog.push({
         entityId: block.entityId || key,
         stateExists: !!block,
-        physicsBodyExists: !!block, // Conceptual mapped
         spriteExists: !!view,
         spriteVisible: view ? view.visible : false,
-        spriteRenderable: view ? view.renderable : false,
-        innerVisible: view?.sprite ? view.sprite.visible : false,
+        artVisible: view?.art ? view.art.visible : false,
+        hasValidTexture,
+        hasArtGeometry,
+        isRenderable: isVisible && (hasValidTexture || hasArtGeometry),
       });
-      if (view && (!view.visible || (view.sprite && !view.sprite.visible))) {
-        console.warn(`[XEPLOP_DEBUG] Block ${block.entityId || key} missing!`, block);
+
+      if (view && (!isVisible || (!hasValidTexture && !hasArtGeometry))) {
+        console.warn(`[XEPLOP_ASSET_TRACK] Block ${block.entityId || key} missing texture and art!`, { block, view });
       }
     }
     (window as any)._xeplop_debug_trace = traceLog;

@@ -35,6 +35,7 @@ export default defineConfig({
   assetsInclude: ['**/*.svg', '**/*.csv'],
   server: {
     watch: {
+      usePolling: true,
       ignored: ['**/.backup/**', '**/.codegraph/**', '**/chrome/**', '**/dist/**'],
     },
   },
