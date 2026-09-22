@@ -29,11 +29,40 @@ export function RootRoute() {
     if (session.status === "running") {
       audioManager.requestBgm(audioManager.gameBgmVolume);
     } else if (session.status === "idle" || session.status === "paused") {
-      audioManager.requestBgm(audioManager.landingBgmVolume);
+      if (session.hasStarted) {
+        audioManager.requestBgm(audioManager.landingBgmVolume);
+      } else {
+        // Not started yet: do not play BGM before user touches "Tap to start"
+        audioManager.pauseBgm();
+      }
     } else if (session.status === "gameOver" || session.status === "revive") {
       audioManager.requestBgm(0.05);
     }
-  }, [session.status]);
+  }, [session.status, session.hasStarted]);
+
+  // Mechanism: Mất focus (blur / tab ẩn) -> pause toàn bộ game và tự động mở Settings panel
+  useEffect(() => {
+    const handleLoseFocus = () => {
+      if (session.status === "running" || session.status === "countdown") {
+        session.pauseGame();
+        store.openSettings();
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        handleLoseFocus();
+      }
+    };
+
+    window.addEventListener("blur", handleLoseFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("blur", handleLoseFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [session, store]);
 
   const blockingOverlayOpen = store.settingsOpen || store.dashboardOpen;
 
@@ -61,11 +90,11 @@ export function RootRoute() {
   }, []);
 
   const handleResumeGame = () => {
-    // ponytail: global pointerdown capture already plays button sfx for .start-ready
-    audioManager.requestBgm(audioManager.gameBgmVolume);
+    // Bật âm thanh ngay khi người dùng chạm "Chạm để bắt đầu"
     void audioManager.unlockAudio().catch((error) => {
       console.warn("Audio unlock failed", error);
     });
+    audioManager.requestBgm(audioManager.gameBgmVolume);
     session.resumeGame();
   };
 

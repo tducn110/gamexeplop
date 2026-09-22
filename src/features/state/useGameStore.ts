@@ -12,7 +12,7 @@ export interface GameUiSettings {
 export function useGameStore() {
   const [dashboardOpen, setDashboardOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [playerName, setPlayerNameState] = useState(() => loadPlayerName() || "Nguoi choi");
+  const [playerName, setPlayerNameState] = useState(() => loadPlayerName() || "");
   const [settings, setSettings] = useState<GameUiSettings>({
     reducedMotion: false,
     musicMuted: false,
@@ -25,7 +25,7 @@ export function useGameStore() {
   const openSettings = () => setSettingsOpen(true);
   const closeSettings = () => setSettingsOpen(false);
   const persistPlayerName = (name: string) => {
-    const safeName = name.trim() || "Nguoi choi";
+    const safeName = name.trim();
     savePlayerName(safeName);
     setPlayerNameState(safeName);
   };

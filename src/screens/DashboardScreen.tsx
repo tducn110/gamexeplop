@@ -6,13 +6,15 @@ import { useTranslation } from "react-i18next";
 interface DashboardScreenProps {
   open: boolean;
   best: number;
+  bestFloors?: number;
+  personalBestRank?: number | null;
   lastScore: number;
   leaderboard: LeaderboardEntry[];
   playerName: string;
   onClose: () => void;
 }
 
-export function DashboardScreen({ open, best, lastScore, leaderboard, playerName, onClose }: DashboardScreenProps) {
+export function DashboardScreen({ open, best, bestFloors = 0, personalBestRank = null, lastScore, leaderboard, playerName, onClose }: DashboardScreenProps) {
   const { t, i18n } = useTranslation();
   if (!open) return null;
 
@@ -21,7 +23,7 @@ export function DashboardScreen({ open, best, lastScore, leaderboard, playerName
       <div className="leaderboardCard">
         <div className="leaderboardTitle">
           <Trophy size={22} />
-          <span>{t("BEST")}</span>
+          <span>{t("LEADERBOARD")}</span>
         </div>
 
         <div className="leaderboardBestCard">
@@ -40,7 +42,7 @@ export function DashboardScreen({ open, best, lastScore, leaderboard, playerName
 
           <div className="dashboardRankList leaderboardRankList">
             {leaderboard.length === 0 ? <p style={{ textAlign: "center", color: "var(--pencil-gray)", fontSize: 14 }}>{t("LEADERBOARD_EMPTY")}</p> : null}
-            {leaderboard.map((entry) => {
+            {leaderboard.slice(0, 10).map((entry) => {
               const rank = entry.rank;
               
               let badgeBg = "rgba(42,36,24,0.08)";
@@ -93,8 +95,13 @@ export function DashboardScreen({ open, best, lastScore, leaderboard, playerName
         </section>
 
         {(() => {
-          const playerInTopTen = leaderboard.find((entry) => entry.playerName === playerName && entry.score === best);
-          const playerRow = playerInTopTen || { rank: null, playerName, score: best, floors: 0 };
+          const topTen = leaderboard.slice(0, 10);
+          const playerInTopTen = topTen.find(
+            (entry) => (playerName && entry.playerName === playerName) || (entry.score === best && best > 0)
+          );
+          const playerRank = playerInTopTen?.rank ?? personalBestRank ?? null;
+          const playerScore = best || 0;
+          const playerFloors = (playerInTopTen?.floors ?? bestFloors) || 0;
           
           return (
             <div className="leaderboardPlayerRow" style={{ marginTop: 12 }}>
@@ -113,18 +120,16 @@ export function DashboardScreen({ open, best, lastScore, leaderboard, playerName
                     borderColor: "rgba(42,36,24,0.25)"
                   }}
                 >
-                  {playerRow.rank ? `#${playerRow.rank}` : t("NEW")}
+                  {playerRank ? `#${playerRank}` : "-"}
                 </div>
                 <div className="dashboardRankName">
-                  <span>{t("YOU")}</span>
+                  <span>{playerName || t("YOU")}</span>
                 </div>
-                {playerRow.score > 0 && playerRow.floors !== null && (
-                  <div className="dashboardRankTime">
-                    <Layers size={12} /> {playerRow.floors} {t("FLOORS").toLowerCase()}
-                  </div>
-                )}
+                <div className="dashboardRankTime">
+                  <Layers size={12} /> {playerFloors} {t("FLOORS").toLowerCase()}
+                </div>
                 <div className="dashboardRankScore">
-                  {playerRow.score > 0 ? playerRow.score.toLocaleString(i18n.language === 'vi' ? "vi-VN" : "en-US") : t("NONE")}
+                  {playerScore.toLocaleString(i18n.language === 'vi' ? "vi-VN" : "en-US")}
                 </div>
               </div>
             </div>

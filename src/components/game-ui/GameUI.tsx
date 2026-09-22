@@ -31,30 +31,22 @@ export function GameUI({ session, store, gameControllerRef }: GameUIProps) {
     store.randomizeCharacter();
   }, [session.sessionKey, session.status, store]);
 
-  const remoteLeaderboard = session.wink.leaderboard.map(
+  const remoteLeaderboard = session.wink.leaderboard.slice(0, 10).map(
     (entry: WinkLeaderboardEntry) => ({
       rank: entry.rank,
       playerName:
-        entry.displayName ??
+        entry.displayName ||
         i18n.t("PLAYER"),
       score: entry.score,
-      floors: null,
+      floors: (entry as any).floors ?? null,
     }),
   );
-  const leaderboard =
-    session.wink.status === "standalone"
-      ? [{
-          rank: 1,
-          playerName: store.playerName || i18n.t("PLAYER"),
-          score: session.hud.best,
-          floors: session.hud.floors,
-        }]
-      : remoteLeaderboard;
+  const leaderboard = remoteLeaderboard;
   const dashboardBest =
     session.wink.status === "standalone"
       ? session.hud.best
-      : session.wink.bestScore;
-  const dashboardPlayerName = session.wink.displayName ?? store.playerName;
+      : (session.wink.bestScore || session.hud.best);
+  const dashboardPlayerName = session.wink.displayName || store.playerName || "";
 
   return (
     <>
@@ -96,7 +88,9 @@ export function GameUI({ session, store, gameControllerRef }: GameUIProps) {
 
       <DashboardScreen
         open={store.dashboardOpen}
-        best={session.hud.best}
+        best={dashboardBest}
+        bestFloors={session.hud.bestFloors}
+        personalBestRank={session.wink.personalBest?.rank ?? null}
         lastScore={session.lastScore}
         leaderboard={leaderboard}
         playerName={dashboardPlayerName}

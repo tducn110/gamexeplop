@@ -53,7 +53,6 @@ export default function App() {
 
   useEffect(() => {
     void audioManager.preloadAll("/assets/");
-    audioManager.requestBgm(audioManager.landingBgmVolume);
 
     const handleVisibility = () => {
       audioManager.setVisibilityState(document.visibilityState);

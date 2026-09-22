@@ -13,19 +13,25 @@ export interface SessionHudState {
   floors: number;
   combo: number;
   best: number;
+  bestFloors: number;
 }
 
-export function useGameSession(playerName: string) {
+export function useGameSession(playerName?: string) {
   const wink = useWinkIntegration();
   const [status, setStatus] = useState<GameStatus>("idle");
   const [hasStarted, setHasStarted] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [sessionKey, setSessionKey] = useState(0);
-  const [hud, setHud] = useState<SessionHudState>({
-    score: 0,
-    floors: 0,
-    combo: 0,
-    best: parseInt(localStorage.getItem('bestScore') || '0', 10),
+  const [hud, setHud] = useState<SessionHudState>(() => {
+    const savedBest = typeof window !== 'undefined' ? parseInt(localStorage.getItem('bestScore') || '0', 10) : 0;
+    const savedBestFloors = typeof window !== 'undefined' ? parseInt(localStorage.getItem('bestFloors') || '0', 10) : 0;
+    return {
+      score: 0,
+      floors: 0,
+      combo: 0,
+      best: Number.isFinite(savedBest) ? savedBest : 0,
+      bestFloors: Number.isFinite(savedBestFloors) ? savedBestFloors : 0,
+    };
   });
   const [lastScore, setLastScore] = useState(0);
   const [revivesUsed, setRevivesUsed] = useState(0);
@@ -198,8 +204,12 @@ export function useGameSession(playerName: string) {
     
     setHud((current) => {
       const newBest = Math.max(current.best, payload.score);
-      try { localStorage.setItem('bestScore', newBest.toString()); } catch {}
-      return { ...current, score: payload.score, floors: payload.floors, best: newBest };
+      const newBestFloors = Math.max(current.bestFloors, payload.floors);
+      try {
+        localStorage.setItem('bestScore', newBest.toString());
+        localStorage.setItem('bestFloors', newBestFloors.toString());
+      } catch {}
+      return { ...current, score: payload.score, floors: payload.floors, best: newBest, bestFloors: newBestFloors };
     });
   };
 

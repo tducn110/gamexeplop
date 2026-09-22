@@ -124,7 +124,8 @@ const resources = {
       "ERROR_OCCURRED": "Đã xảy ra sự cố",
       "ERROR_DESC": "Trò chơi gặp lỗi bất ngờ trong quá trình hoạt động. Hãy thử tải lại trang.",
       "RELOAD_GAME": "Tải lại trò chơi",
-      "LANGUAGE": "Ngôn ngữ"
+      "LANGUAGE": "Ngôn ngữ",
+      "PLAYER": "Người chơi"
     }
   },
   en: {
@@ -167,7 +168,8 @@ const resources = {
       "ERROR_OCCURRED": "An error occurred",
       "ERROR_DESC": "The game encountered an unexpected error. Please try reloading the page.",
       "RELOAD_GAME": "Reload Game",
-      "LANGUAGE": "Language"
+      "LANGUAGE": "Language",
+      "PLAYER": "Player"
     }
   }
 };
