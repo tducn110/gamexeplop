@@ -31,6 +31,7 @@ export function usePixiApp() {
       antialias: true,
       resolution: Math.min(window.devicePixelRatio || 1, 2),
       autoDensity: true,
+      preference: "webgl",
       gcActive: true,
       gcMaxUnusedTime: 60000,
       gcFrequency: 30000,

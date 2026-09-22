@@ -100,58 +100,60 @@ function recordAssetDiagnostics(diag: AssetDiagnostics) {
   }
   if (diag.status === "fallback_procedural") {
     console.error("[ASSET_TRACKING] All block image assets failed to load! Using procedural vector fallback.", diag);
-  } else if (diag.status === "loaded_webp") {
-    console.warn("[ASSET_TRACKING] SVG asset failed, fell back to WebP successfully.", diag);
+  } else if (diag.status === "loaded_svg") {
+    console.warn("[ASSET_TRACKING] WebP asset failed, fell back to SVG successfully.", diag);
   } else {
-    console.info("[ASSET_TRACKING] Block SVG textures loaded successfully.", diag);
+    console.info("[ASSET_TRACKING] Block WebP textures loaded successfully.", diag);
   }
 }
 
 export async function createGameTextures(app: Application): Promise<GameTextures> {
   const spark = createSparkTexture(app);
   let blockSheet: Texture | null = null;
-  let loadStatus: AssetDiagnostics["status"] = "loaded_svg";
+  let loadStatus: AssetDiagnostics["status"] = "loaded_webp";
   let lastError: string | null = null;
 
-  // 1. Try loading SVG asset
+  // 1. Try loading WebP asset (primary: 347KB native raster, perfect 2880x1620 2x resolution, avoids Safari WebKit SVG WebGL bug)
   try {
-    blockSheet = await Assets.load<Texture>({
-      src: BLOCK_SHEET_SVG_ASSET,
-      data: { resolution: 2 },
-    });
+    blockSheet = await Assets.load<Texture>(BLOCK_SHEET_WEBP_ASSET);
     if (!blockSheet || !blockSheet.source || blockSheet.width <= 1 || blockSheet.height <= 1) {
-      throw new Error(`Invalid SVG dimensions: width=${blockSheet?.width}, height=${blockSheet?.height}`);
+      throw new Error(`Invalid WebP dimensions: width=${blockSheet?.width}, height=${blockSheet?.height}`);
     }
+    loadStatus = "loaded_webp";
   } catch (err: any) {
-    lastError = err?.message || String(err);
-    console.warn(`[ASSET_TRACKING] Failed to load SVG block sheet (${BLOCK_SHEET_SVG_ASSET}): ${lastError}. Attempting WebP fallback...`);
+    const webpError = err?.message || String(err);
+    console.warn(`[ASSET_TRACKING] Failed to load WebP block sheet (${BLOCK_SHEET_WEBP_ASSET}): ${webpError}. Attempting SVG fallback...`);
+    lastError = webpError;
     blockSheet = null;
   }
 
-  // 2. Fallback to WebP asset
+  // 2. Secondary fallback: SVG asset
   if (!blockSheet) {
     try {
-      blockSheet = await Assets.load<Texture>(BLOCK_SHEET_WEBP_ASSET);
+      blockSheet = await Assets.load<Texture>({
+        src: BLOCK_SHEET_SVG_ASSET,
+        data: { resolution: 2 },
+      });
       if (!blockSheet || !blockSheet.source || blockSheet.width <= 1 || blockSheet.height <= 1) {
-        throw new Error(`Invalid WebP dimensions: width=${blockSheet?.width}, height=${blockSheet?.height}`);
+        throw new Error(`Invalid SVG dimensions: width=${blockSheet?.width}, height=${blockSheet?.height}`);
       }
-      loadStatus = "loaded_webp";
+      loadStatus = "loaded_svg";
     } catch (err: any) {
-      const webpError = err?.message || String(err);
-      console.warn(`[ASSET_TRACKING] Failed to load WebP block sheet (${BLOCK_SHEET_WEBP_ASSET}): ${webpError}. Using procedural fallback.`);
-      lastError = `SVG: ${lastError} | WebP: ${webpError}`;
+      const svgError = err?.message || String(err);
+      console.warn(`[ASSET_TRACKING] Failed to load SVG block sheet (${BLOCK_SHEET_SVG_ASSET}): ${svgError}. Using procedural fallback.`);
+      lastError = `WebP: ${lastError} | SVG: ${svgError}`;
       blockSheet = null;
     }
   }
 
-  // 3. Fallback to procedural vector textures
+  // 3. Tertiary fallback: procedural vector textures
   if (!blockSheet) {
     loadStatus = "fallback_procedural";
     const proceduralBlocks = BLOCK_PALETTE.map((color) => createProceduralBlockTexture(app, color));
     recordAssetDiagnostics({
       status: loadStatus,
-      primaryAsset: BLOCK_SHEET_SVG_ASSET,
-      fallbackAsset: BLOCK_SHEET_WEBP_ASSET,
+      primaryAsset: BLOCK_SHEET_WEBP_ASSET,
+      fallbackAsset: BLOCK_SHEET_SVG_ASSET,
       error: lastError,
       texturesCount: proceduralBlocks.length,
       timestamp: Date.now(),
@@ -165,13 +167,13 @@ export async function createGameTextures(app: Application): Promise<GameTextures
     };
   }
 
-  // Loaded from sprite sheet (SVG or WebP)
+  // Loaded from sprite sheet (WebP or SVG)
   const blocks = BLOCK_FRAMES.map((frame) => createFrameTexture(blockSheet!, frame));
 
   recordAssetDiagnostics({
     status: loadStatus,
-    primaryAsset: BLOCK_SHEET_SVG_ASSET,
-    fallbackAsset: loadStatus === "loaded_webp" ? BLOCK_SHEET_WEBP_ASSET : undefined,
+    primaryAsset: BLOCK_SHEET_WEBP_ASSET,
+    fallbackAsset: loadStatus === "loaded_svg" ? BLOCK_SHEET_SVG_ASSET : undefined,
     error: lastError,
     texturesCount: blocks.length,
     timestamp: Date.now(),

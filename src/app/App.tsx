@@ -11,6 +11,26 @@ export default function App() {
   const wink = useWinkIntegration();
 
   useEffect(() => {
+    const blockCopyAction = (event: Event) => {
+      event.preventDefault();
+    };
+
+    document.addEventListener("copy", blockCopyAction, true);
+    document.addEventListener("cut", blockCopyAction, true);
+    document.addEventListener("selectstart", blockCopyAction, true);
+    document.addEventListener("dragstart", blockCopyAction, true);
+    document.addEventListener("contextmenu", blockCopyAction, true);
+
+    return () => {
+      document.removeEventListener("copy", blockCopyAction, true);
+      document.removeEventListener("cut", blockCopyAction, true);
+      document.removeEventListener("selectstart", blockCopyAction, true);
+      document.removeEventListener("dragstart", blockCopyAction, true);
+      document.removeEventListener("contextmenu", blockCopyAction, true);
+    };
+  }, []);
+
+  useEffect(() => {
     audioManager.setParentMuted(wink.parentMuted);
     audioManager.setHostPaused(wink.hostPaused);
   }, [wink.parentMuted, wink.hostPaused]);

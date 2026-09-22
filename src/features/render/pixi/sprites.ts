@@ -37,8 +37,16 @@ function fitSpriteByCrop(sprite: Sprite, clip: Graphics, targetWidth: number, re
 
   sprite.scale.set(scale);
   sprite.position.set(offsetX, BLOCK_HEIGHT - renderHeight);
-  clip.clear();
-  clip.rect(0, sprite.y - 10, cropWidth, renderHeight + 20).fill({ color: 0xffffff, alpha: 1 });
+
+  // Only apply stencil mask if the block was actually sliced/cropped smaller than reference width
+  if (cropWidth < referenceWidth - 0.5) {
+    clip.clear();
+    clip.rect(0, sprite.y - 10, cropWidth, renderHeight + 20).fill({ color: 0xffffff, alpha: 1 });
+    sprite.mask = clip;
+  } else {
+    clip.clear();
+    sprite.mask = null;
+  }
 
   return { width: cropWidth, height: renderHeight, x: 0, y: sprite.y };
 }
@@ -50,7 +58,7 @@ function createBlockView(layer: PixiContainer): BlockView {
   view.sprite = new Sprite(Texture.EMPTY);
   view.art = new Graphics();
   view.sprite.anchor.set(0, 0);
-  view.sprite.mask = view.clip;
+  view.sprite.mask = null;
   view.addChild(view.shadow, view.sprite, view.art, view.clip);
   layer.addChild(view);
   return view;
@@ -120,6 +128,8 @@ function drawBlockArt(
     sprite.texture = texture;
     sprite.alpha = alpha;
     sprite.visible = true;
+    art.clear();
+    art.visible = false;
     // Use fitSpriteByCrop to proportionally scale and crop the sprite without stretching
     fitSpriteByCrop(sprite, view.clip, safeWidth, referenceWidth);
   } else {
@@ -127,6 +137,7 @@ function drawBlockArt(
     // If sprite texture is invalid, missing, or failed, render a solid styled straw block directly.
     // This ensures the block is NEVER invisible even during network errors or texture load failures.
     sprite.visible = false;
+    sprite.mask = null;
     view.clip.clear();
     const color = BLOCK_PALETTE[textureIndex % BLOCK_PALETTE.length] ?? 0xf4a261;
     art.roundRect(0, 0, safeWidth, BLOCK_HEIGHT, radius)
@@ -137,6 +148,7 @@ function drawBlockArt(
     // Subtle edge border
     art.roundRect(0, 0, safeWidth, BLOCK_HEIGHT, radius)
       .stroke({ color: 0x000000, alpha: 0.15 * alpha, width: 1.5 });
+    art.visible = true;
   }
 
   // Simple shadow bottom (drawn procedurally)
@@ -185,7 +197,20 @@ function applyBlockView(
 
   view.alpha = options.alpha ?? 1;
   view.visible = true;
-  view.sprite.visible = width > 0;
+
+  const hasValidSprite = Boolean(
+    view.sprite.texture &&
+    view.sprite.texture !== Texture.EMPTY &&
+    view.sprite.texture.width > 1
+  );
+
+  if (hasValidSprite) {
+    view.sprite.visible = width > 0;
+    view.art.visible = false;
+  } else {
+    view.sprite.visible = false;
+    view.art.visible = width > 0;
+  }
 
   if (options.falling) {
     view.pivot.set(width / 2, BLOCK_HEIGHT / 2);
