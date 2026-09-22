@@ -12,7 +12,7 @@ import { createGameTextures, destroyGameTextures, type GameTextures } from "./te
 import { applyCameraTransform, triggerPlacementCameraShake, resetCameraShake } from "./camera";
 import { usePixiApp } from "./usePixiApp";
 import { getFloors } from "../../logic/rules";
-import { playDropSfx, playLandSfx, playLoseSfx, playMatchSfx } from "../../../utils/combo-sound";
+import { playLandSfx, playLoseSfx, playMatchSfx } from "../../../utils/combo-sound";
 import { MobileDebugOverlay } from "@/platform/diagnostics/MobileDebugOverlay";
 import { createPortraitBackground, destroyPortraitBackground, syncPortraitBackground, type PortraitBackground } from "./portraitBackground";
 
@@ -181,8 +181,6 @@ export function PixiGameStage({
         if (res.status === "gameOver") {
           playLoseSfx();
           onGameOver?.(getGameResult(gameRef.current));
-        } else if (res.status === "placed") {
-          playDropSfx();
         }
       }
     },

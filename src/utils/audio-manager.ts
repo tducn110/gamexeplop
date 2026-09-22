@@ -129,6 +129,7 @@ export class AudioManager {
   private desiredBgmVolume: number = AUDIO_VOLUME.landingBgm;
   private currentBgmVolume: number = AUDIO_VOLUME.landingBgm;
   private basePath = "/assets/";
+  private lastButtonSfxTime = 0;
 
   private policyState: AudioPolicyState = {
     musicEnabled: true,
@@ -148,13 +149,19 @@ export class AudioManager {
   private attachGlobalListeners(): void {
     if (typeof document === "undefined") return;
 
-    let bootstrapped = false;
-
     const handleGesture = () => {
-      if (!bootstrapped) {
-        bootstrapped = true;
-        void this.unlockAudio().catch((err) => console.warn("[AudioManager] Gesture unlock error:", err));
-      } else if (this.bgmPendingStart && isMusicActive(this.policyState)) {
+      this.ensureContext();
+      if (!this.policyState.unlocked) {
+        this.policyState.unlocked = true;
+        this.unlockState = "ready";
+      }
+      if (this.ctx && this.ctx.state === "suspended") {
+        this.ctx.resume().catch(() => {});
+      }
+      this.syncAudioPolicy();
+
+      if (this.bgmPendingStart && isMusicActive(this.policyState)) {
+        this.setupBgm();
         this.startBgm(this.desiredBgmVolume);
       }
     };
@@ -166,10 +173,21 @@ export class AudioManager {
       }
     };
 
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.repeat || (event.key !== "Enter" && event.key !== " ")) return;
+    const handleTouchStart = () => {
+      handleGesture();
+    };
+
+    const handleClick = (event: MouseEvent) => {
       handleGesture();
       if (this.shouldPlayButtonSfx(event.target)) {
+        this.playButtonSfx();
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.repeat) return;
+      handleGesture();
+      if ((event.key === "Enter" || event.key === " ") && this.shouldPlayButtonSfx(event.target)) {
         this.playButtonSfx();
       }
     };
@@ -180,6 +198,8 @@ export class AudioManager {
     };
 
     document.addEventListener("pointerdown", handlePointerDown, { capture: true });
+    document.addEventListener("touchstart", handleTouchStart, { capture: true, passive: true });
+    document.addEventListener("click", handleClick, { capture: true });
     document.addEventListener("keydown", handleKeyDown, { capture: true });
     document.addEventListener("visibilitychange", handleVisibilityChange);
   }
@@ -269,53 +289,38 @@ export class AudioManager {
    */
   async unlockAudio(): Promise<void> {
     this.ensureContext();
-    if (this.policyState.unlocked && this.ctx?.state === "running") {
-      this.unlockState = "ready";
-      if (isMusicActive(this.policyState)) {
-        this.startBgm(this.desiredBgmVolume);
-      }
-      return;
+    this.setupBgm();
+
+    if (this.ctx && this.ctx.state === "suspended") {
+      this.ctx.resume().catch(() => {});
     }
 
-    if (this.unlockPromise) return this.unlockPromise;
-
-    this.unlockState = "unlocking";
-    this.unlockPromise = (async () => {
+    if (this.ctx) {
       try {
-        if (this.ctx && this.ctx.state === "suspended") {
-          await this.ctx.resume();
-        }
+        // Play a silent 1-sample buffer synchronously to unlock Web Audio on iOS Safari
+        const buffer = this.ctx.createBuffer(1, 1, 22050);
+        const source = this.ctx.createBufferSource();
+        source.buffer = buffer;
+        source.connect(this.ctx.destination);
+        source.onended = () => {
+          try { source.disconnect(); } catch {}
+        };
+        source.start(0);
+      } catch {}
+    }
 
-        if (this.ctx) {
-          // Play a silent 1-sample buffer to unlock Web Audio on iOS Safari
-          const buffer = this.ctx.createBuffer(1, 1, 22050);
-          const source = this.ctx.createBufferSource();
-          source.buffer = buffer;
-          source.connect(this.ctx.destination);
-          source.onended = () => {
-            try { source.disconnect(); } catch {}
-          };
-          source.start(0);
-        }
+    this.policyState.unlocked = true;
+    this.unlockState = "ready";
+    this.syncAudioPolicy();
 
-        this.policyState.unlocked = true;
-        this.unlockState = this.ctx?.state === "running" ? "ready" : "suspended";
+    if (isMusicActive(this.policyState) && (!this.bgmElement || this.bgmElement.paused || this.bgmPendingStart)) {
+      this.startBgm(this.desiredBgmVolume);
+    }
 
-        this.setupBgm();
-        this.syncAudioPolicy();
-
-        // Async preload of SFX buffers in background without blocking UI
-        void this.preloadSfxBuffers(this.basePath);
-      } catch (error) {
-        this.unlockState = "failed";
-        console.warn("[AudioManager] Unlock failed:", error);
-        throw error;
-      } finally {
-        this.unlockPromise = null;
-      }
-    })();
-
-    return this.unlockPromise;
+    // Ensure SFX buffers are preloaded in background without stalling input
+    if (!this._loaded && !this.sfxLoadPromise) {
+      void this.preloadSfxBuffers(this.basePath);
+    }
   }
 
   /** Alias for unlockAudio() */
@@ -434,17 +439,20 @@ export class AudioManager {
     this.ensureContext();
     if (!this.ctx || !this.sfxMuteGain) return;
 
+    if (this.ctx.state === "suspended") {
+      this.ctx.resume().catch(() => {});
+    }
+
     const buf = this.buffers[name];
     if (!buf) {
+      if (!this.sfxLoadPromise) {
+        void this.preloadSfxBuffers(this.basePath);
+      }
       // Fallback to oscillator click if tap sound requested before buffer loads
       if (name === "tap" || name === "drop") {
         this.playButtonSfx(options.volume ?? AUDIO_VOLUME.button);
       }
       return;
-    }
-
-    if (this.ctx.state === "suspended") {
-      this.ctx.resume().catch(() => {});
     }
 
     const defaultVol: number = AUDIO_VOLUME[name] ?? 0.5;
@@ -465,9 +473,12 @@ export class AudioManager {
       pool = [];
       this.voicePools.set(name, pool);
     }
-    if (pool.length >= maxVoices) {
-      try { pool[0].stop(); } catch {}
-      pool.shift();
+    while (pool.length >= maxVoices) {
+      const oldest = pool.shift();
+      try {
+        oldest?.stop();
+        oldest?.disconnect();
+      } catch {}
     }
     pool.push(source);
 
@@ -490,19 +501,21 @@ export class AudioManager {
    * Referencing 01-fruit playButtonSfx pattern.
    */
   playButtonSfx(volume: number = AUDIO_VOLUME.button): void {
+    const nowMs = Date.now();
+    if (nowMs - this.lastButtonSfxTime < 70) return;
+    this.lastButtonSfxTime = nowMs;
+
     if (!isSfxActive(this.policyState)) return;
     this.ensureContext();
     if (!this.ctx || !this.sfxMuteGain) return;
 
-    const wasSuspended = this.ctx.state === "suspended";
-    if (wasSuspended) {
+    if (this.ctx.state === "suspended") {
       void this.ctx.resume().catch(() => {});
     }
 
-    // ponytail: iOS Safari freezes ctx.currentTime while suspended.
-    // Offset by 0.05s so ctx.resume() resolves before oscillators start.
-    const startOffset = wasSuspended ? 0.05 : 0;
-    const now = this.ctx.currentTime + startOffset;
+    if (typeof this.ctx.createOscillator !== "function") return;
+
+    const now = this.ctx.currentTime;
     const gain = this.ctx.createGain();
     const click = this.ctx.createOscillator();
     const pop = this.ctx.createOscillator();
@@ -720,3 +733,7 @@ export class AudioManager {
 }
 
 export const audioManager = new AudioManager();
+
+if (typeof window !== "undefined") {
+  (window as any).__audioManager = audioManager;
+}
