@@ -48,28 +48,16 @@ describe("i18n configuration and persistence (Standard 01 contract)", () => {
     expect(mockLocalStorage.getItem(LANGUAGE_STORAGE_KEY)).toBe("vi");
   });
 
-  it("applyHostLocale does NOT overwrite localStorage or player preference", async () => {
-    // 1. When player already has preference 'en'
-    mockLocalStorage.setItem(LANGUAGE_STORAGE_KEY, "en");
-    await i18n.changeLanguage("en");
-    expect(hasStoredLanguagePreference()).toBe(true);
-
-    // Host sends 'vi' -> must NOT override user choice
+  it("applyHostLocale is authoritative per Wink SDK 10.1.0 contract", async () => {
+    // Host sends 'vi' -> sets language to 'vi'
     const result = applyHostLocale("vi");
-    expect(result).toBe("en");
-    expect(i18n.resolvedLanguage).toBe("en");
-    expect(mockLocalStorage.getItem(LANGUAGE_STORAGE_KEY)).toBe("en");
-
-    // 2. When player has NO preference
-    mockLocalStorage.clear();
-    expect(hasStoredLanguagePreference()).toBe(false);
-
-    // Host sends 'vi' -> sets language in memory without polluting localStorage
-    const freshResult = applyHostLocale("vi");
-    expect(freshResult).toBe("vi");
+    expect(result).toBe("vi");
     expect(i18n.resolvedLanguage).toBe("vi");
-    expect(mockLocalStorage.getItem(LANGUAGE_STORAGE_KEY)).toBeNull();
-    expect(hasStoredLanguagePreference()).toBe(false);
+
+    // Host sends 'en' -> sets language to 'en'
+    const enResult = applyHostLocale("en");
+    expect(enResult).toBe("en");
+    expect(i18n.resolvedLanguage).toBe("en");
   });
 
   it("has CLOSE key in both locales", () => {

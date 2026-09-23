@@ -2,6 +2,7 @@ import { Globe, Settings as SettingsIcon, VolumeX, Volume2, Music, Music2, Vibra
 import { PanelFrame } from "@/components/shared/primitives/PanelFrame";
 import { IconButton } from "@/components/shared/primitives/IconButton";
 import { useTranslation } from "react-i18next";
+import { selectLanguage } from "@/i18n";
 
 interface SettingsScreenProps {
   open: boolean;
@@ -52,7 +53,7 @@ export function SettingsScreen({
               label={currentLanguage === "vi" ? "Tiếng Việt" : "English"}
               aria-label={currentLanguage === "vi" ? "Tiếng Việt" : "English"}
               variant="solid"
-              onClick={() => void i18n.changeLanguage(nextLanguage)}
+              onClick={() => selectLanguage(nextLanguage)}
               className="settingsToggle is-on"
             >
               {currentLanguage.toUpperCase()}

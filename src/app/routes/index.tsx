@@ -25,10 +25,20 @@ export function RootRoute() {
     audioManager.setMusicMuted(store.settings.musicMuted);
   }, [store.settings.musicMuted]);
 
+  const sessionStatusRef = useRef(session.status);
   useEffect(() => {
-    if (session.status === "running") {
+    sessionStatusRef.current = session.status;
+  }, [session.status]);
+
+  const blockingOverlayOpen = store.settingsOpen || store.dashboardOpen;
+
+  useEffect(() => {
+    if (blockingOverlayOpen || session.status === "paused") {
+      // Khi bật menu để pause thì tắt âm thanh nhạc nền
+      audioManager.pauseBgm();
+    } else if (session.status === "running") {
       audioManager.requestBgm(audioManager.gameBgmVolume);
-    } else if (session.status === "idle" || session.status === "paused") {
+    } else if (session.status === "idle") {
       if (session.hasStarted) {
         audioManager.requestBgm(audioManager.landingBgmVolume);
       } else {
@@ -38,12 +48,14 @@ export function RootRoute() {
     } else if (session.status === "gameOver" || session.status === "revive") {
       audioManager.requestBgm(0.05);
     }
-  }, [session.status, session.hasStarted]);
+  }, [session.status, session.hasStarted, blockingOverlayOpen]);
 
   // Mechanism: Mất focus (blur / tab ẩn) -> pause toàn bộ game và tự động mở Settings panel
   useEffect(() => {
     const handleLoseFocus = () => {
-      if (session.status === "running" || session.status === "countdown") {
+      const currentStatus = sessionStatusRef.current;
+      if (currentStatus === "running" || currentStatus === "countdown") {
+        resumeAfterOverlayRef.current = true;
         session.pauseGame();
         store.openSettings();
       }
@@ -63,8 +75,6 @@ export function RootRoute() {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [session, store]);
-
-  const blockingOverlayOpen = store.settingsOpen || store.dashboardOpen;
 
   useEffect(() => {
     if (blockingOverlayOpen) {

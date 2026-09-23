@@ -8,6 +8,7 @@ import type {
   WinkSDK,
   WinkStatus,
 } from "./types";
+import { applyHostLocale, selectLanguage } from "../../i18n";
 
 const SAFE_ERROR_MESSAGES: Record<WinkIntegrationErrorCode, string> = {
   PARENT_REQUIRED: "Mini-game phải được mở trong iframe Wink.",
@@ -183,6 +184,9 @@ export function useWinkIntegration(): WinkIntegration {
         setParentMuted(resolvedSdk.muted);
         const initialLocale = normalizeLocale(resolvedSdk.locale);
         setLocale(initialLocale);
+        if (resolvedSdk.locale) {
+          applyHostLocale(resolvedSdk.locale);
+        }
 
         try {
           cleanups.push(
@@ -207,11 +211,9 @@ export function useWinkIntegration(): WinkIntegration {
           );
           cleanups.push(
             resolvedSdk.on("locale", (nextLocale: string) => {
-              // Only track host locale as React state.
-              // Do NOT auto-switch i18n language — game defaults to English
-              // and the user switches language manually via settings.
               const normalizedLocale = normalizeLocale(nextLocale);
               setLocale(normalizedLocale);
+              applyHostLocale(nextLocale);
             }),
           );
         } catch (e) {
@@ -362,6 +364,7 @@ export function useWinkIntegration(): WinkIntegration {
     leaderboard,
     personalBest,
     can,
+    setLocale: selectLanguage,
     gameplayStart,
     gameplayStop,
     track,
