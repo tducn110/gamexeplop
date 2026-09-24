@@ -26,8 +26,7 @@ describe('Wink SDK v1 Integration (04_xeplop node test)', () => {
       init: vi.fn(async () => mockSdk as WinkSDK),
       gameplayStart: vi.fn(),
       gameplayStop: vi.fn(),
-      track: vi.fn(async () => {}),
-      can: vi.fn((cap) => cap === 'track' || cap === 'submitScore'),
+      can: vi.fn((cap) => cap === 'submitScore'),
       status: 'online',
     };
 
@@ -37,6 +36,6 @@ describe('Wink SDK v1 Integration (04_xeplop node test)', () => {
     const sdk = await resolveGlobalWink();
     expect(mockSdk.init).toHaveBeenCalled();
     expect(sdk).toBe(mockSdk);
-    expect(sdk?.can('track')).toBe(true);
+    expect(sdk?.can('submitScore')).toBe(true);
   });
 });

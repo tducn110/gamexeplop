@@ -111,7 +111,7 @@ export function RootRoute() {
   return (
     <div className="game-page">
       <div className="game-frame">
-        <Suspense fallback={<div className="stage-loading">Đang tải sân chơi...</div>}>
+        <Suspense fallback={<div className="stage-loading">{t("STAGE_LOADING")}</div>}>
           <PixiGameStage
             sessionKey={session.sessionKey}
             status={session.status}

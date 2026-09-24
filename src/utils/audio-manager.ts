@@ -179,7 +179,8 @@ export class AudioManager {
 
     const handleClick = (event: MouseEvent) => {
       handleGesture();
-      if (this.shouldPlayButtonSfx(event.target)) {
+      // Pointerdown handles pointer taps with zero latency; fallback to click only for non-pointer activations (e.g. keyboard detail === 0)
+      if (event.detail === 0 && this.shouldPlayButtonSfx(event.target)) {
         this.playButtonSfx();
       }
     };
@@ -502,7 +503,7 @@ export class AudioManager {
    */
   playButtonSfx(volume: number = AUDIO_VOLUME.button): void {
     const nowMs = Date.now();
-    if (nowMs - this.lastButtonSfxTime < 70) return;
+    if (nowMs - this.lastButtonSfxTime < 180) return;
     this.lastButtonSfxTime = nowMs;
 
     if (!isSfxActive(this.policyState)) return;

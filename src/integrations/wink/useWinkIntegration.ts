@@ -335,18 +335,6 @@ export function useWinkIntegration(): WinkIntegration {
     [gameplayStop],
   );
 
-  const track = useCallback(
-    (eventName: string, properties?: Record<string, unknown>) => {
-      const currentSdk = sdkRef.current;
-      if (currentSdk && currentSdk.can("track")) {
-        currentSdk.track(eventName, properties).catch((err) => {
-          console.warn("[WinkIntegration] track error", err);
-        });
-      }
-    },
-    [],
-  );
-
   const displayName = sdk?.player?.displayName ?? null;
   const bestScore = personalBest?.score ?? 0;
 
@@ -367,7 +355,6 @@ export function useWinkIntegration(): WinkIntegration {
     setLocale: selectLanguage,
     gameplayStart,
     gameplayStop,
-    track,
     refreshLeaderboard,
     refreshPersonalBest,
     submitFinalScore,
