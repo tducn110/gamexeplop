@@ -141,7 +141,8 @@ export function PixiGameStage({
     resetCameraShake();
     if (layersRef.current) {
       destroyFeedbackAnimations(layersRef.current.world);
-      layersRef.current.world.position.set(0, 0);
+      layersRef.current.world.position.set(playfield.offsetX, 0);
+      layersRef.current.effects.position.set(playfield.offsetX, 0);
       layersRef.current.root.position.set(0, 0);
     }
     destroySpriteRegistry(registryRef.current);
