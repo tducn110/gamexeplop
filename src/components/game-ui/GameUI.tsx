@@ -19,9 +19,15 @@ interface GameUIProps {
 
 export function GameUI({ session, store, gameControllerRef }: GameUIProps) {
   const randomizedGameOverKeyRef = useRef<number | null>(null);
+  const dashboardFetchedRef = useRef(false);
 
   useEffect(() => {
-    if (!store.dashboardOpen || session.wink.status === "standalone") return;
+    if (!store.dashboardOpen) {
+      dashboardFetchedRef.current = false;
+      return;
+    }
+    if (dashboardFetchedRef.current || session.wink.status === "standalone") return;
+    dashboardFetchedRef.current = true;
     void session.wink.refreshLeaderboard().catch(() => {});
   }, [session.wink.refreshLeaderboard, session.wink.status, store.dashboardOpen]);
 
@@ -33,19 +39,25 @@ export function GameUI({ session, store, gameControllerRef }: GameUIProps) {
 
   const remoteLeaderboard = session.wink.leaderboard.slice(0, 10).map(
     (entry: WinkLeaderboardEntry) => ({
+      id: entry.id,
       rank: entry.rank,
       playerName:
         entry.displayName ||
         i18n.t("PLAYER"),
       score: entry.score,
       floors: (entry as any).floors ?? null,
+      isCurrentPlayer: Boolean(
+        (session.wink.personalBest?.id && entry.id && session.wink.personalBest.id === entry.id) ||
+        (session.wink.personalBest?.userId && entry.userId && session.wink.personalBest.userId === entry.userId) ||
+        (session.wink.displayName && entry.displayName && entry.displayName === session.wink.displayName)
+      ),
     }),
   );
   const leaderboard = remoteLeaderboard;
   const dashboardBest =
     session.wink.status === "standalone"
       ? session.hud.best
-      : (session.wink.bestScore || session.hud.best);
+      : Math.max(session.wink.bestScore, session.hud.best);
   const dashboardPlayerName = session.wink.displayName || store.playerName || "";
 
   return (
