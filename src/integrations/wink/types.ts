@@ -3,15 +3,16 @@ export type WinkStatus = 'connecting' | 'connected' | 'online' | 'standalone';
 export type WinkCapability =
   | 'getLeaderboard'
   | 'submitScore'
-  | 'complete'
-  | 'track';
+  | 'complete';
 
 export type WinkEvent =
   | 'pause'
   | 'resume'
   | 'mute'
   | 'unmute'
-  | 'locale';
+  | 'locale'
+  | 'leaderboard'
+  | 'score';
 
 export type WinkIntegrationErrorCode =
   | 'PARENT_REQUIRED'
@@ -82,7 +83,7 @@ export interface WinkSDK {
   getPersonalBest(options?: unknown): Promise<{ me: WinkLeaderboardEntry | null }>;
   on(event: WinkEvent, listener: (data?: any) => void): () => void;
   can(capability: WinkCapability): boolean;
-  track(eventName: string, properties?: Record<string, unknown>): Promise<void>;
+  setLocale?: (locale: string) => void;
   readonly player: WinkPlayer | null;
   readonly locale: string;
   readonly muted: boolean;
@@ -98,31 +99,47 @@ declare global {
   }
 }
 
+export type WinkMode = 'wink' | 'offline';
+export type WinkPhase = 'booting' | 'ready_anonymous' | 'ready_authenticated';
+
+export interface WinkSubmitScoreResult {
+  entry: WinkLeaderboardEntry | null;
+  isNewBest: boolean;
+  previousBest?: number | null;
+}
+
 export interface WinkIntegration {
   status: WinkStatus;
   isReady: boolean;
   readyPromise: Promise<WinkSDK | null>;
   sdk: WinkSDK | null;
+  mode?: WinkMode;
+  phase?: WinkPhase;
   hostPaused: boolean;
   parentMuted: boolean;
+  hostMuted?: boolean;
   locale: string;
   displayName: string | null;
   bestScore: number;
   error: WinkIntegrationError | null;
   leaderboard: readonly WinkLeaderboardEntry[];
   personalBest: WinkLeaderboardEntry | null;
+  playerEntry?: WinkLeaderboardEntry | null;
   can(capability: WinkCapability): boolean;
+  canSubmitScore?: boolean;
+  canGetLeaderboard?: boolean;
+  setLocale(locale: 'vi' | 'en'): void;
   gameplayStart(): void;
   gameplayStop(): void;
-  track(eventName: string, properties?: Record<string, unknown>): void;
-  refreshLeaderboard(): Promise<void>;
-  refreshPersonalBest(): Promise<void>;
+  refreshLeaderboard(options?: { force?: boolean }): Promise<void>;
+  refreshPersonalBest(options?: { force?: boolean }): Promise<void>;
   submitFinalScore(input: {
     roundId?: string;
     score: number;
     playTimeSec?: number;
     qualifies?: boolean;
-  }): Promise<void>;
+    metadata?: Record<string, unknown>;
+  }): Promise<WinkSubmitScoreResult | null>;
   completeRound(input?: {
     roundId?: string;
     playDurationMs?: number;

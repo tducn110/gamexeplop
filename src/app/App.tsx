@@ -4,10 +4,9 @@ import { RootRoute } from "./routes";
 import { audioManager } from "../utils/audio-manager";
 import { preloadCriticalResources, preloadNonCriticalResources } from "../utils/game-loader";
 import { completeGameLoading, onGameLoadingDismiss, setGameLoadingProgress } from "../utils/loading-controller";
-import { resolveGlobalWink, useWinkIntegration } from "../integrations/wink/useWinkIntegration";
+import { resolveGlobalWink, useWinkIntegration, WinkProvider } from "../integrations/wink/useWinkIntegration";
 
-
-export default function App() {
+function GameApp() {
   const wink = useWinkIntegration();
 
   useEffect(() => {
@@ -70,5 +69,13 @@ export default function App() {
     <GameShell>
       <RootRoute />
     </GameShell>
+  );
+}
+
+export default function App() {
+  return (
+    <WinkProvider>
+      <GameApp />
+    </WinkProvider>
   );
 }

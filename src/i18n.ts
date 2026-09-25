@@ -69,19 +69,29 @@ export const formatNumber = (value: number, lang?: string): string => {
 };
 
 export function applyHostLocale(value?: string): SupportedLanguage {
-  if (hasStoredLanguagePreference()) {
-    return i18n.resolvedLanguage?.startsWith('vi') ? 'vi' : 'en';
-  }
   const baseLocale = value?.trim().toLowerCase().split(/[-_]/, 1)[0];
   const normalized: SupportedLanguage = baseLocale === 'vi' ? 'vi' : 'en';
   try {
     isApplyingHostLocale = true;
     void i18n.changeLanguage(normalized);
+    if (typeof document !== 'undefined') {
+      document.documentElement.lang = normalized;
+    }
   } finally {
     isApplyingHostLocale = false;
   }
   return normalized;
 }
+
+export const selectLanguage = (locale: 'vi' | 'en'): void => {
+  applyHostLocale(locale);
+  persistLanguage(locale);
+  if (typeof window !== 'undefined' && typeof (window as any).Wink?.setLocale === 'function') {
+    try {
+      (window as any).Wink.setLocale(locale);
+    } catch {}
+  }
+};
 
 const resources = {
   vi: {

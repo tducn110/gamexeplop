@@ -7,8 +7,10 @@ export interface ScoreRecord {
 }
 
 export interface LeaderboardEntry {
+  id?: string;
   rank: number;
   playerName: string;
   score: number;
   floors: number | null;
+  isCurrentPlayer?: boolean;
 }

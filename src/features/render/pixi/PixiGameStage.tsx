@@ -62,6 +62,7 @@ export function PixiGameStage({
   const portraitBackgroundRef = useRef<PortraitBackground | null>(null);
   const resumeRequestedRef = useRef(false);
   const lastScoreSnapshotRef = useRef({ score: -1, floors: -1, combo: -1 });
+  const lastSessionKeyRef = useRef<number | null>(null);
   const [texturesReady, setTexturesReady] = useState(false);
 
   useEffect(() => {
@@ -122,7 +123,17 @@ export function PixiGameStage({
 
   useEffect(() => {
     if (sessionKey <= 0) return;
-    const playfield = getPlayfieldMetrics(sizeRef.current.width);
+
+    const isNewSession = lastSessionKeyRef.current !== sessionKey;
+    lastSessionKeyRef.current = sessionKey;
+
+    // If session did not change, only re-align if game hasn't started yet
+    if (!isNewSession && gameRef.current && (status !== "idle" || gameRef.current.placed > 0)) {
+      return;
+    }
+
+    const measuredWidth = viewport.ready ? viewport.size.width : sizeRef.current.width;
+    const playfield = getPlayfieldMetrics(measuredWidth);
     gameRef.current = createGame(playfield.width);
     finishedKeyRef.current = null;
     lastPlacementTokenRef.current = null;
@@ -130,12 +141,13 @@ export function PixiGameStage({
     resetCameraShake();
     if (layersRef.current) {
       destroyFeedbackAnimations(layersRef.current.world);
-      layersRef.current.world.position.set(0, 0);
+      layersRef.current.world.position.set(playfield.offsetX, 0);
+      layersRef.current.effects.position.set(playfield.offsetX, 0);
       layersRef.current.root.position.set(0, 0);
     }
     destroySpriteRegistry(registryRef.current);
     registryRef.current = createSpriteRegistry();
-  }, [sessionKey, sizeRef]);
+  }, [sessionKey, viewport.ready, viewport.size.width, status]);
 
   useEffect(() => {
     if (status !== "paused" && status !== "idle") resumeRequestedRef.current = false;
@@ -300,9 +312,9 @@ export function PixiGameStage({
         ref={wrapRef}
         className="game-stage"
         data-viewport-ready={viewport.ready ? "true" : "false"}
-        aria-label="Sân chơi kéo lên trời"
+        aria-label={t("STAGE_LOADING")}
       >
-        {!stageReady ? <div className="stage-loading">Đang tải sân chơi...</div> : null}
+        {!stageReady ? <div className="stage-loading">{t("STAGE_LOADING")}</div> : null}
         {stageReady && (status === "idle" || status === "paused") && showStartPrompt ? (
           <button
             type="button"

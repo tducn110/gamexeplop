@@ -28,7 +28,7 @@ export function DashboardScreen({ open, best, bestFloors = 0, personalBestRank =
 
         <div className="leaderboardBestCard">
           <p className="leaderboardEyebrow">{t("BEST")}</p>
-          <h1>{best.toLocaleString(i18n.language === 'vi' ? "vi-VN" : "en-US")}</h1>
+          <h1>{best > 0 ? best.toLocaleString(i18n.language === 'vi' ? "vi-VN" : "en-US") : t("NONE")}</h1>
         </div>
 
         <section className="leaderboardBoard">
@@ -44,18 +44,20 @@ export function DashboardScreen({ open, best, bestFloors = 0, personalBestRank =
             {leaderboard.length === 0 ? <p style={{ textAlign: "center", color: "var(--pencil-gray)", fontSize: 14 }}>{t("LEADERBOARD_EMPTY")}</p> : null}
             {leaderboard.slice(0, 10).map((entry) => {
               const rank = entry.rank;
+              const isCurrent = Boolean(entry.isCurrentPlayer);
               
               let badgeBg = "rgba(42,36,24,0.08)";
               let badgeBorder = "rgba(42,36,24,0.25)";
               let badgeColor = "var(--ink-dark)";
-              let rowBorder = "transparent";
+              let rowBorder = isCurrent ? "rgba(232,116,50,0.55)" : "transparent";
+              let rowBg = isCurrent ? "rgba(232,116,50,0.14)" : "rgba(138,125,101,0.1)";
               
               if (rank === 1) {
-                badgeBg = "#EDB338"; badgeBorder = "#C49021"; rowBorder = "#EDB338";
+                badgeBg = "#EDB338"; badgeBorder = "#C49021"; rowBorder = isCurrent ? "#E87432" : "#EDB338";
               } else if (rank === 2) {
-                badgeBg = "#B4B598"; badgeBorder = "#8C8E76"; rowBorder = "#B4B598";
+                badgeBg = "#B4B598"; badgeBorder = "#8C8E76"; rowBorder = isCurrent ? "#E87432" : "#B4B598";
               } else if (rank === 3) {
-                badgeBg = "#CE8654"; badgeBorder = "#A46538"; rowBorder = "#CE8654";
+                badgeBg = "#CE8654"; badgeBorder = "#A46538"; rowBorder = isCurrent ? "#E87432" : "#CE8654";
               }
 
               return (
@@ -63,7 +65,7 @@ export function DashboardScreen({ open, best, bestFloors = 0, personalBestRank =
                   key={`${entry.rank}-${entry.playerName}-${entry.score}`}
                   className="dashboardRankRow"
                   style={{
-                    background: "rgba(138,125,101,0.1)",
+                    background: rowBg,
                     borderColor: rowBorder,
                   }}
                 >
@@ -97,7 +99,7 @@ export function DashboardScreen({ open, best, bestFloors = 0, personalBestRank =
         {(() => {
           const topTen = leaderboard.slice(0, 10);
           const playerInTopTen = topTen.find(
-            (entry) => (playerName && entry.playerName === playerName) || (entry.score === best && best > 0)
+            (entry) => entry.isCurrentPlayer || (playerName && entry.playerName === playerName)
           );
           const playerRank = playerInTopTen?.rank ?? personalBestRank ?? null;
           const playerScore = best || 0;
